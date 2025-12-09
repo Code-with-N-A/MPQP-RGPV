@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import DataFoolow from "./DataFolowD";
 
 const API_URL = "https://script.google.com/macros/s/AKfycbyQGbi08nenrNPoHNmV3D6PUd0MkXH3X57qi0Yr75lxySDYpaBDLHHUvWPUcNGKhrLd/exec";
 
@@ -325,6 +326,8 @@ export default function Dashboard() {
         {!loading && expandedSection === "enabled" && <Table rows={enabledRows} />}
         {!loading && expandedSection === "disabled" && <Table rows={disabledRows} />}
       </div>
+          <DataFoolow/>
+
     </div>
   );
 }
