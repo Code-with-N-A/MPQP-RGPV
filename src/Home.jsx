@@ -14,9 +14,25 @@ export default function Home() {
 
   const rowRefs = useRef({});
 
-  const branches = ["CSE", "IT", "ECE", "EE", "ME", "CE", "AE"];
+  const branches = [
+    "CSE",
+    "CE",
+    "ME",
+    "EE",
+    "EC",
+    "CH",
+    "PE",
+    "IC",
+    "CTM",
+    "IT",
+    "MS",
+    "OE",
+    "MOM",
+    "BCC"
+  ];
+
   const types = ["Regular", "Ex"];
-  const years = ["2023", "2024", "2025","2026"];
+  const years = ["2023", "2024", "2025", "2026"];
   const semesters = ["1", "2", "3", "4", "5", "6"];
 
   const loadData = async () => {
@@ -24,7 +40,13 @@ export default function Home() {
     try {
       const res = await fetch(`${API_URL}?action=list`);
       const json = await res.json();
-      if (json.status === "success") setData(json.rows || []);
+      if (json.status === "success") {
+        const fetchedData = json.rows || [];
+        setData(fetchedData);
+        // Store in sessionStorage and set window flag
+        sessionStorage.setItem('paperData', JSON.stringify(fetchedData));
+        window.dataLoaded = true;
+      }
     } catch (err) {
       console.error(err);
     }
@@ -32,7 +54,17 @@ export default function Home() {
   };
 
   useEffect(() => {
-    loadData();
+    if (window.dataLoaded) {
+      // Load from sessionStorage if already loaded in this session
+      const storedData = sessionStorage.getItem('paperData');
+      if (storedData) {
+        setData(JSON.parse(storedData));
+      }
+      setLoading(false);
+    } else {
+      // Fetch from API only on first load or refresh/close-reopen
+      loadData();
+    }
   }, []);
 
   // Filter only enabled rows
@@ -154,9 +186,8 @@ export default function Home() {
                     <tr
                       key={row.id}
                       ref={(el) => (rowRefs.current[row.id] = el)}
-                      className={`border-b hover:bg-gray-50 ${
-                        activePdfId === row.id ? "bg-yellow-100" : ""
-                      }`}
+                      className={`border-b hover:bg-gray-50 ${activePdfId === row.id ? "bg-yellow-100" : ""
+                        }`}
                     >
                       <td className="p-2">{index + 1}</td>
                       <td className="p-2">{titleCase(String(row.year))}</td>
@@ -169,11 +200,10 @@ export default function Home() {
                         {row.pdfUrl ? (
                           <button
                             onClick={() => handlePdfClick(row.id, row.pdfUrl)}
-                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer ${
-                              activePdfId === row.id
+                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer ${activePdfId === row.id
                                 ? "bg-yellow-500 shadow-lg"
                                 : "bg-green-600 hover:bg-green-700"
-                            }`}
+                              }`}
                           >
                             PDF
                           </button>

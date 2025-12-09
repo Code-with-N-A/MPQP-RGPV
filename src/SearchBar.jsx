@@ -6,15 +6,12 @@ export default function SearchBar({ searchText, setSearchText, onClose }) {
   const inputRef = useRef(null);
 
   const projects = [
-    "All Projects",
-    "HTML Form Project",
-    "CSS Portfolio",
-    "JavaScript MCQZ",
-    "JavaScript ATM",
-    "JavaScript Voting",
-    "JavaScript Binary Number",
     "MPQP RGPV Exam Q Paper",
-    "Blogs"
+    "Verified diploma papers for all branches",
+    "Easy access to old & new papers",
+    "Find papers by year, semester, branch",
+    "Quick download & reference",
+   
   ];
 
   const [placeholder, setPlaceholder] = useState("Searching...");

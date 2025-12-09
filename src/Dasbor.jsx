@@ -15,7 +15,23 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchColumn, setSearchColumn] = useState("subjectName");
 
-  const branches = ["CSE", "IT", "ECE", "EE", "ME", "CE", "AE"];
+  const branches = [
+    "CSE",
+    "CE",
+    "ME",
+    "EE",
+    "EC",
+    "CH",
+    "PE",
+    "IC",
+    "CTM",
+    "IT",
+    "MS",
+    "OE",
+    "MOM",
+    "BCC"
+  ];
+
   const searchColumns = [
     { label: "Subject", value: "subjectName" },
     { label: "Paper Code", value: "paperCode" },
@@ -30,7 +46,13 @@ export default function Dashboard() {
     try {
       const res = await fetch(`${API_URL}?action=list`);
       const json = await res.json();
-      if (json.status === "success") setData(json.rows || []);
+      if (json.status === "success") {
+        const fetchedData = json.rows || [];
+        setData(fetchedData);
+        // Store in sessionStorage and set window flag
+        sessionStorage.setItem('dashboardData', JSON.stringify(fetchedData));
+        window.dashboardDataLoaded = true;
+      }
     } catch (err) {
       console.error(err);
     }
@@ -38,7 +60,17 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    if (window.dashboardDataLoaded) {
+      // Load from sessionStorage if already loaded in this session
+      const storedData = sessionStorage.getItem('dashboardData');
+      if (storedData) {
+        setData(JSON.parse(storedData));
+      }
+      setLoading(false);
+    } else {
+      // Fetch from API only on first load or refresh/close-reopen
+      loadData();
+    }
   }, []);
 
   const updateStatus = async (id, newStatus) => {
@@ -119,9 +151,8 @@ export default function Dashboard() {
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`px-3 py-1 rounded text-white text-sm font-medium transition duration-200 ${
-        disabled ? "bg-gray-400 cursor-not-allowed opacity-70" : `${bgColor} hover:${hoverColor}`
-      }`}
+      className={`px-3 py-1 rounded text-white text-sm font-medium transition duration-200 ${disabled ? "bg-gray-400 cursor-not-allowed opacity-70" : `${bgColor} hover:${hoverColor}`
+        }`}
     >
       {disabled ? loadingText : children}
     </button>
@@ -216,15 +247,14 @@ export default function Dashboard() {
           {["new", "enabled", "disabled"].map((sec) => (
             <button
               key={sec}
-              className={`px-4 py-2 rounded shadow font-medium transition ${
-                expandedSection === sec
-                  ? sec === "new"
-                    ? "bg-blue-600 text-white"
-                    : sec === "enabled"
+              className={`px-4 py-2 rounded shadow font-medium transition ${expandedSection === sec
+                ? sec === "new"
+                  ? "bg-blue-600 text-white"
+                  : sec === "enabled"
                     ? "bg-green-600 text-white"
                     : "bg-red-600 text-white"
-                  : "bg-gray-200 text-gray-800 hover:bg-gray-300"
-              }`}
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                }`}
               onClick={() => setExpandedSection(expandedSection === sec ? null : sec)}
             >
               {sec === "new" ? "New / Recent" : sec.charAt(0).toUpperCase() + sec.slice(1)}
