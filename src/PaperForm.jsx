@@ -39,8 +39,7 @@ export default function PaperForm() {
     "BCC"
   ];
 
-
-  // Array of 4-digit paper codes
+//  Array of 4-digit paper codes
   const paperCodes = [
     "7350", "7351", "7352", "7353", "7354", "7355", "7356", "7357", "7358",
     "7366", "7367", "7368", "7369", "7370", "7371", "7372", "7373", "7374", "7375", "7376", "7377", "7378", "7379",
@@ -239,10 +238,10 @@ export default function PaperForm() {
         </div>
       )}
 
-      <div className="max-w-[600px] w-full bg-white  shadow-2xl border border-gray-200 overflow-hidden">
+      <div className="max-w-[600px] w-full bg-white shadow-2xl border border-gray-200 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-gray-600 to-gray-700 p-4 text-center">
-          <h1 className="text-2xl font-bold text-white">Paper Upload Portal</h1>
+          <h1 className="text-2xl font-bold text-white">MPQP</h1>
           <p className="text-gray-200 mt-2">Securely upload and verify your academic papers</p>
         </div>
 
@@ -257,7 +256,8 @@ export default function PaperForm() {
                   name="year"
                   value={form.year}
                   onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md cursor-pointer"
+                  disabled={loading || isRequesting}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">Select Year</option>
                   <option>2023</option>
@@ -273,7 +273,8 @@ export default function PaperForm() {
                   name="semester"
                   value={form.semester}
                   onChange={handleChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md cursor-pointer"
+                  disabled={loading || isRequesting}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="">Select Semester</option>
                   <option>1</option>
@@ -293,15 +294,19 @@ export default function PaperForm() {
                 name="paperCode"
                 value={form.paperCode}
                 onChange={handleChange}
-                placeholder="Enter Paper Code"
+                placeholder="Enter or select Paper Code"
                 list="paperCodeSuggestions"
-                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md ${!isPaperCodeValid && form.paperCode.trim() ? 'border-red-500' : 'border-gray-300'}`}
+                disabled={loading || isRequesting}
+                className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed ${!isPaperCodeValid && form.paperCode.trim() ? 'border-red-500' : 'border-gray-300'}`}
               />
               <datalist id="paperCodeSuggestions">
                 {paperCodes.map((code) => (
                   <option key={code} value={code} />
                 ))}
               </datalist>
+              {!isPaperCodeValid && form.paperCode.trim() && (
+                <p className="text-red-500 text-sm mt-1">Invalid paper code. Please select from suggestions.</p>
+              )}
             </div>
 
             <div>
@@ -312,7 +317,8 @@ export default function PaperForm() {
                 value={form.subjectName}
                 onChange={handleChange}
                 placeholder="Enter Subject Name"
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md"
+                disabled={loading || isRequesting}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -322,7 +328,8 @@ export default function PaperForm() {
                 name="branch"
                 value={form.branch}
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md cursor-pointer"
+                disabled={loading || isRequesting}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">Select Branch</option>
                 {branches.map((b) => (
@@ -341,7 +348,8 @@ export default function PaperForm() {
                     value="Regular"
                     checked={form.type === "Regular"}
                     onChange={handleChange}
-                    className="mr-2 text-gray-600 focus:ring-gray-500 cursor-pointer"
+                    disabled={loading || isRequesting}
+                    className="mr-2 text-gray-600 focus:ring-gray-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <span className="text-gray-700 font-medium">Regular</span>
                 </label>
@@ -353,7 +361,8 @@ export default function PaperForm() {
                     value="Ex"
                     checked={form.type === "Ex"}
                     onChange={handleChange}
-                    className="mr-2 text-gray-600 focus:ring-gray-500 cursor-pointer"
+                    disabled={loading || isRequesting}
+                    className="mr-2 text-gray-600 focus:ring-gray-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <span className="text-gray-700 font-medium">Ex</span>
                 </label>
@@ -367,7 +376,8 @@ export default function PaperForm() {
                 name="pdfFile"
                 accept="application/pdf"
                 onChange={handleChange}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-gray-50 shadow-sm hover:shadow-md file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 cursor-pointer"
+                disabled={loading || isRequesting}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 bg-gray-50 shadow-sm hover:shadow-md file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-gray-700 hover:file:bg-gray-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -377,7 +387,7 @@ export default function PaperForm() {
                 type="checkbox"
                 checked={isVerified}
                 onChange={checkDuplicate}
-                disabled={verifyLoading || isVerified || !allFieldsFilled || isRequesting}
+                disabled={verifyLoading || isVerified || !allFieldsFilled || isRequesting || loading}
                 className="w-5 h-5 text-gray-600 bg-gray-100 border-gray-300 rounded focus:ring-gray-500 disabled:opacity-50 cursor-pointer"
               />
               {isVerified && !verifyLoading && (
@@ -400,18 +410,19 @@ export default function PaperForm() {
             <button
               type="submit"
               disabled={loading || disableSubmit || isRequesting}
-              className={`w-full p-4 rounded-lg text-white font-bold text-lg transition-all duration-200 transform ${loading || disableSubmit || isRequesting
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 hover:scale-105 shadow-lg hover:shadow-xl"
-                }`}
+                            className={`w-full p-4 rounded-lg text-white font-bold text-lg transition-all duration-200 transform ${
+                loading || disableSubmit || isRequesting
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gray-700 hover:bg-gray-800 active:scale-95"
+              }`}
             >
               {loading ? (
-                <div className="flex items-center justify-center gap-2">
+                <div className="flex items-center justify-center gap-3">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  Uploading...
+                  Submitting...
                 </div>
               ) : (
-                "Submit"
+                "Submit Paper"
               )}
             </button>
           </form>

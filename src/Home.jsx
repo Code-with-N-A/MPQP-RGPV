@@ -160,7 +160,7 @@ export default function Home() {
             <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg shadow border border-gray-200">
+          <div className="overflow-x-auto shadow border border-gray-200">
             <table className="w-full text-sm border-collapse">
               <thead className="bg-gray-800 text-white">
                 <tr>
