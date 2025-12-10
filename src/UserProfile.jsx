@@ -1,4 +1,3 @@
-import CryptoJS from "crypto-js";
 import { useState, useRef, useEffect } from "react";
 import {
   FiUser,
@@ -11,7 +10,6 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export default function UserProfile({ user, onLogout, sidebarClose }) {
-  const secretKey = "my-secret-key";
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("menu");
   const [displayName, setDisplayName] = useState("");
@@ -206,19 +204,11 @@ export default function UserProfile({ user, onLogout, sidebarClose }) {
                     <FiEdit /> Edit Profile
                   </button>
 
-                  {/* ONLY SHOW FOR ADMIN EMAIL */}
+                  {/* ⭐ ONLY SHOW FOR ADMIN EMAIL ⭐ */}
                   {user.email === "codewithna73@gmail.com" && (
                     <button
                       onClick={() => {
-                        // Encrypt the admin route
-                        const encrypted = CryptoJS.AES.encrypt(
-                          JSON.stringify("@-nitesh-748933"),
-                          secretKey
-                        ).toString();
-
-                        // Navigate to encrypted route
-                        navigate(`/panel/${encrypted}`);
-
+                        navigate("/@-nitesh-748933*2");
                         setOpen(false);
                         sidebarClose && sidebarClose();
                       }}
