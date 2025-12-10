@@ -1,5 +1,5 @@
 // src/App.jsx
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import Nave from "./Nave";
 import Home from "./Home";
 import LandingPage from "./YouserAcoount";
@@ -9,8 +9,22 @@ import SignupNotification from "./Snotificetion";
 import Auth from "./Signup";
 import Footer from "./Footer";
 import ProtectedRoute from "./ProtectedRoute";
+import CryptoJS from "crypto-js";
 
 function App() {
+  const navigate = useNavigate();
+
+  // Example: create encrypted admin route slug
+  const secretKey = "my-secret-key";
+
+  const encryptedPath = CryptoJS.AES.encrypt(
+    JSON.stringify("@-nitesh-748933"),
+    secretKey
+  ).toString();
+
+  // Agar future me encrypted route use karna ho:
+  // navigate(`/panel/${encryptedPath}`)
+
   return (
     <>
       <Nave />
@@ -21,22 +35,23 @@ function App() {
 
         <Route
           path="/Paper Upload"
-          element={
-            <PaperForm />
-          }
+          element={<PaperForm />}
         />
+
+        {/* Ye tumhara original route — admin protected */}
         <Route
-          path="/Cntrol-Panel"
+          path="/@-nitesh-748933"
           element={
             <ProtectedRoute>
-            <Dashboard />
+              <Dashboard />
             </ProtectedRoute>
           }
         />
-        <Route path="/signup" element={
-          <Auth />
-        } />
 
+        <Route
+          path="/signup"
+          element={<Auth />}
+        />
 
         <Route path="/user-account" element={<LandingPage />} />
 

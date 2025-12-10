@@ -1,3 +1,4 @@
+import CryptoJS from "crypto-js";
 import { useState, useRef, useEffect } from "react";
 import {
   FiUser,
@@ -10,6 +11,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export default function UserProfile({ user, onLogout, sidebarClose }) {
+  const secretKey = "my-secret-key";
   const [open, setOpen] = useState(false);
   const [view, setView] = useState("menu");
   const [displayName, setDisplayName] = useState("");
@@ -41,7 +43,7 @@ export default function UserProfile({ user, onLogout, sidebarClose }) {
       user.displayName ||
       (user.email
         ? user.email.split("@")[0].charAt(0).toUpperCase() +
-          user.email.split("@")[0].slice(1).toLowerCase()
+        user.email.split("@")[0].slice(1).toLowerCase()
         : "User");
 
     setDisplayName(finalName);
@@ -53,22 +55,22 @@ export default function UserProfile({ user, onLogout, sidebarClose }) {
     const formattedDate = `${date.getDate()
       .toString()
       .padStart(2, "0")}/${(date.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}/${date.getFullYear().toString().slice(-2)}`;
+        .toString()
+        .padStart(2, "0")}/${date.getFullYear().toString().slice(-2)}`;
     setJoinDate(formattedDate);
 
     const now = new Date();
     const formattedLastLogin = `${now.getDate()
       .toString()
       .padStart(2, "0")}/${(now.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}/${now.getFullYear()} ${now
-      .getHours()
-      .toString()
-      .padStart(2, "0")}:${now
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
+        .toString()
+        .padStart(2, "0")}/${now.getFullYear()} ${now
+          .getHours()
+          .toString()
+          .padStart(2, "0")}:${now
+            .getMinutes()
+            .toString()
+            .padStart(2, "0")}:${now.getSeconds().toString().padStart(2, "0")}`;
     setLastLoginTime(formattedLastLogin);
     localStorage.setItem(`userLastLogin_${user.email}`, formattedLastLogin);
   }, [user]);
@@ -204,11 +206,19 @@ export default function UserProfile({ user, onLogout, sidebarClose }) {
                     <FiEdit /> Edit Profile
                   </button>
 
-                  {/* ⭐ ONLY SHOW FOR ADMIN EMAIL ⭐ */}
+                  {/* ONLY SHOW FOR ADMIN EMAIL */}
                   {user.email === "codewithna73@gmail.com" && (
                     <button
                       onClick={() => {
-                        navigate("/Cntrol-Panel");
+                        // Encrypt the admin route
+                        const encrypted = CryptoJS.AES.encrypt(
+                          JSON.stringify("@-nitesh-748933"),
+                          secretKey
+                        ).toString();
+
+                        // Navigate to encrypted route
+                        navigate(`/panel/${encrypted}`);
+
                         setOpen(false);
                         sidebarClose && sidebarClose();
                       }}
