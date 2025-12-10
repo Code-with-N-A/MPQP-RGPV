@@ -9,6 +9,9 @@ export default function ProtectedRoute({ children }) {
   const [loading, setLoading] = useState(true);
   const location = useLocation();
 
+  // Only this email is allowed
+  const ADMIN_EMAIL = "codewithna73@gmail.com";
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
@@ -17,9 +20,17 @@ export default function ProtectedRoute({ children }) {
     return () => unsubscribe();
   }, []);
 
-  if (loading) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  // Loading view
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-xl font-semibold">
+        Loading...
+      </div>
+    );
+  }
 
-  if (!user)
+  // Not logged in → send to signup
+  if (!user) {
     return (
       <Navigate
         to="/signup"
@@ -27,6 +38,18 @@ export default function ProtectedRoute({ children }) {
         state={{ from: location.pathname }}
       />
     );
+  }
 
+  // Logged in but NOT admin → send home
+  if (user.email !== ADMIN_EMAIL) {
+    return (
+      <Navigate
+        to="/"
+        replace
+      />
+    );
+  }
+
+  // User is admin → allow
   return children;
 }

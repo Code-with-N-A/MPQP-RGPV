@@ -8,6 +8,7 @@ import PaperForm from "./PaperForm";
 import SignupNotification from "./Snotificetion";
 import Auth from "./Signup";
 import Footer from "./Footer";
+import ProtectedRoute from "./ProtectedRoute";
 
 function App() {
   return (
@@ -27,11 +28,13 @@ function App() {
         <Route
           path="/Cntrol-Panel"
           element={
-              <Dashboard />
+            <ProtectedRoute>
+            <Dashboard />
+            </ProtectedRoute>
           }
         />
         <Route path="/signup" element={
-        <Auth/>
+          <Auth />
         } />
 
 
@@ -40,7 +43,7 @@ function App() {
         <Route path="*" element={<Home />} />
       </Routes>
 
-      <Footer/>
+      <Footer />
     </>
   );
 }
