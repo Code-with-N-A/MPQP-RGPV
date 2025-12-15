@@ -12,6 +12,7 @@ import MPQPPageM from "./MPQPM";
 import Dashboard from "./DataFolowD";
 import ControlD from "./DataControl";
 import Report from "./Report";
+import { ApiProvider } from "./ContextAPI";
 
 function App() {
   return (
@@ -19,50 +20,29 @@ function App() {
       <Nave />
       <SignupNotification />
 
-      <Routes>
-        <Route path="/" element={<Home />} />
+      <ApiProvider>
+        <Routes>
+          <Route path="/" element={<Home />} />
 
-        <Route
-          path="/Paper Upload"
-          element={
-            <PaperForm />
-          }
-        />
-        <Route
-          path="/DataControl"
-          element={
-            <ControlD/>
-          }
-        />
-        <Route
-          path="/Dasbord"
-          element={
-            <Dashboard/>
-          }
-        />
-        <Route
-          path="/DataReport"
-          element={
-            <Report/>
-          }
-        />
-        <Route
-          path="/@-nitesh-748933*2"
-          element={
-            <ProtectedRoute>
-            <MPQPPageM/>
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/signup" element={
-          <Auth />
-        } />
+          <Route path="/Paper Upload" element={<PaperForm />} />
+          <Route path="/DataControl" element={<ControlD />} />
+          <Route path="/Dasbord" element={<Dashboard />} />
+          <Route path="/DataReport" element={<Report />} />
 
+          <Route
+            path="/@-nitesh-748933*2"
+            element={
+              <ProtectedRoute>
+                <MPQPPageM />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="/user-account" element={<LandingPage />} />
-
-        <Route path="*" element={<Home />} />
-      </Routes>
+          <Route path="/signup" element={<Auth />} />
+          <Route path="/user-account" element={<LandingPage />} />
+          <Route path="*" element={<Home />} />
+        </Routes>
+      </ApiProvider>
 
       <Footer />
     </>

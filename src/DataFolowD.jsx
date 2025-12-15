@@ -12,6 +12,7 @@ import {
   PointElement,
   LineElement,
 } from "chart.js";
+import { useApiData } from "./ContextAPI";
 
 // Register Chart.js components
 ChartJS.register(
@@ -27,7 +28,6 @@ ChartJS.register(
 );
 
 // Constants
-const API_URL = "https://script.google.com/macros/s/AKfycbyQGbi08nenrNPoHNmV3D6PUd0MkXH3X57qi0Yr75lxySDYpaBDLHHUvWPUcNGKhrLd/exec";
 
 const CHART_COLORS = {
   year: "rgba(59, 130, 246, 0.8)",
@@ -207,6 +207,8 @@ const createGroupedBarChartData = (labels, datasets) => ({
 });
 
 export default function Dashboard() {
+  const { API_URL } = useApiData();
+
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

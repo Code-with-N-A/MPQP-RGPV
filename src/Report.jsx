@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { FaSearch, FaFilter, FaDownload, FaPrint, FaEye, FaTimes } from "react-icons/fa";
+import { useApiData } from "./ContextAPI";
 
 // Constants (same as Dashboard)
-const API_URL = "https://script.google.com/macros/s/AKfycbyQGbi08nenrNPoHNmV3D6PUd0MkXH3X57qi0Yr75lxySDYpaBDLHHUvWPUcNGKhrLd/exec";
 
 export default function Report() {
+  const { API_URL} = useApiData();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

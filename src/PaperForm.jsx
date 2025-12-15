@@ -1,9 +1,8 @@
 import React, { useState } from "react";
+import { useApiData } from "./ContextAPI";
 
 export default function PaperForm() {
-  const API_URL =
-    "https://script.google.com/macros/s/AKfycbxOpOzjAQNEKfSfdpH6ifEExnuuyulNak_hAE1wMdJXfsJLiN2hQ8NWG8Ut8RwHxpon/exec";
-
+ const { API_URL} = useApiData();
   const [form, setForm] = useState({
     year: "",
     semester: "",

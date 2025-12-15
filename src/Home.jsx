@@ -1,39 +1,27 @@
 import React, { useEffect, useState, useRef } from "react";
-
-const API_URL = "https://script.google.com/macros/s/AKfycbyQGbi08nenrNPoHNmV3D6PUd0MkXH3X57qi0Yr75lxySDYpaBDLHHUvWPUcNGKhrLd/exec";
+import { useApiData } from "./ContextAPI";
 
 export default function Home() {
+  const { API_URL } = useApiData();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePdfId, setActivePdfId] = useState(null);
+  const [activeDownloadId, setActiveDownloadId] = useState(null); // New state for download highlight
+  const [downloadingIds, setDownloadingIds] = useState(new Set()); // State for tracking downloading rows
+  const [disabledDownloadIds, setDisabledDownloadIds] = useState(new Set()); // New state for permanently disabled download buttons
 
   const [yearFilter, setYearFilter] = useState("");
   const [semFilter, setSemFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [branchFilter, setBranchFilter] = useState("");
 
+  const [uniqueYears, setUniqueYears] = useState([]);
+  const [uniqueSemesters, setUniqueSemesters] = useState([]);
+  const [uniqueBranches, setUniqueBranches] = useState([]);
+  const [uniqueTypes, setUniqueTypes] = useState([]);
+
   const rowRefs = useRef({});
-
-  const branches = [
-    "CSE",
-    "CE",
-    "ME",
-    "EE",
-    "EC",
-    "CH",
-    "PE",
-    "IC",
-    "CTM",
-    "IT",
-    "MS",
-    "OE",
-    "MOM",
-    "BCC"
-  ];
-
-  const types = ["Regular", "Ex"];
-  const years = ["2023", "2024", "2025", "2026"];
-  const semesters = ["1", "2", "3", "4", "5", "6"];
+  const downloadCounter = useRef(0); // Counter to stagger downloads
 
   const loadData = async () => {
     setLoading(true);
@@ -67,6 +55,19 @@ export default function Home() {
     }
   }, []);
 
+  useEffect(() => {
+    if (data.length > 0) {
+      const years = [...new Set(data.map(row => String(row.year)).filter(y => y))].sort();
+      const semesters = [...new Set(data.map(row => String(row.semester)).filter(s => s))].sort();
+      const branches = [...new Set(data.map(row => String(row.branch).toLowerCase()).filter(b => b))].sort();
+      const types = [...new Set(data.map(row => String(row.type)).filter(t => t))].sort();
+      setUniqueYears(years);
+      setUniqueSemesters(semesters);
+      setUniqueBranches(branches);
+      setUniqueTypes(types);
+    }
+  }, [data]);
+
   // Filter only enabled rows
   const filteredData = data
     .filter((row) => row.status?.toLowerCase() === "enabled")
@@ -87,6 +88,16 @@ export default function Home() {
       .join(" ");
   };
 
+  // Helper function to convert Google Drive view URL to direct download URL
+  const getDownloadUrl = (url) => {
+    if (!url) return "";
+    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
+    if (match) {
+      return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+    }
+    return url; // Fallback if not a Google Drive link
+  };
+
   const handlePdfClick = (id, url) => {
     setActivePdfId(id);
     // Scroll to the row smoothly
@@ -94,6 +105,29 @@ export default function Home() {
       rowRefs.current[id].scrollIntoView({ behavior: "smooth", block: "center" });
     }
     window.open(url, "_blank");
+  };
+
+  const handleDownload = (row) => {
+    setActiveDownloadId(row.id); // Set highlight
+    setDownloadingIds(prev => new Set(prev).add(row.id));
+    setDisabledDownloadIds(prev => new Set(prev).add(row.id)); // Permanently disable
+
+    downloadCounter.current += 1;
+    setTimeout(() => {
+      const link = document.createElement('a');
+      link.href = getDownloadUrl(row.pdfUrl);
+      link.download = '';
+      link.click();
+    }, downloadCounter.current * 100); // Stagger by 100ms per download
+
+    setTimeout(() => {
+      setDownloadingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(row.id);
+        return newSet;
+      });
+      setActiveDownloadId(null); // Remove highlight after download starts
+    }, 3000 + downloadCounter.current * 100); // Adjust timeout accordingly
   };
 
   return (
@@ -107,7 +141,7 @@ export default function Home() {
             className="p-2 border rounded shadow-sm"
           >
             <option value="">All Years</option>
-            {years.map((y) => (
+            {uniqueYears.map((y) => (
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
@@ -118,7 +152,7 @@ export default function Home() {
             className="p-2 border rounded shadow-sm"
           >
             <option value="">All Semesters</option>
-            {semesters.map((s) => (
+            {uniqueSemesters.map((s) => (
               <option key={s} value={s}>Sem {s}</option>
             ))}
           </select>
@@ -129,8 +163,8 @@ export default function Home() {
             className="p-2 border rounded shadow-sm"
           >
             <option value="">All Branches</option>
-            {branches.map((b) => (
-              <option key={b} value={b.toLowerCase()}>{b}</option>
+            {uniqueBranches.map((b) => (
+              <option key={b} value={b}>{titleCase(b)}</option>
             ))}
           </select>
 
@@ -140,7 +174,7 @@ export default function Home() {
             className="p-2 border rounded shadow-sm"
           >
             <option value="">All Types</option>
-            {types.map((t) => (
+            {uniqueTypes.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -172,12 +206,13 @@ export default function Home() {
                   <th className="p-3 border-b text-left">Subject</th>
                   <th className="p-3 border-b text-left">Type</th>
                   <th className="p-3 border-b text-left">PDF</th>
+                  <th className="p-3 border-b text-left">PDF DOWNLOAD</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="p-4 text-center text-gray-500">
+                    <td colSpan="9" className="p-4 text-center text-gray-500">
                       No papers found.
                     </td>
                   </tr>
@@ -186,7 +221,7 @@ export default function Home() {
                     <tr
                       key={row.id}
                       ref={(el) => (rowRefs.current[row.id] = el)}
-                      className={`border-b hover:bg-gray-50 ${activePdfId === row.id ? "bg-yellow-100" : ""
+                      className={`border-b hover:bg-gray-50 ${activePdfId === row.id || activeDownloadId === row.id ? "bg-yellow-100" : ""
                         }`}
                     >
                       <td className="p-2">{index + 1}</td>
@@ -198,14 +233,42 @@ export default function Home() {
                       <td className="p-2">{titleCase(String(row.type))}</td>
                       <td className="p-2">
                         {row.pdfUrl ? (
-                          <button
-                            onClick={() => handlePdfClick(row.id, row.pdfUrl)}
-                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer ${activePdfId === row.id
+                          <a
+                            href={row.pdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer inline-block ${activePdfId === row.id
                                 ? "bg-yellow-500 shadow-lg"
                                 : "bg-green-600 hover:bg-green-700"
                               }`}
+                            onClick={() => setActivePdfId(row.id)}
                           >
                             PDF
+                          </a>
+                        ) : (
+                          <span className="text-gray-400">N/A</span>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        {row.pdfUrl ? (
+                          <button
+                            onClick={() => handleDownload(row)}
+                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer relative ${activeDownloadId === row.id
+                                ? "bg-yellow-500 shadow-lg"
+                                : disabledDownloadIds.has(row.id)
+                                  ? "bg-gray-400 cursor-not-allowed"
+                                  : "bg-blue-600 hover:bg-blue-700"
+                              }`}
+                            disabled={disabledDownloadIds.has(row.id)}
+                          >
+                            <span className="relative z-10">
+                              {disabledDownloadIds.has(row.id) ? "Downloaded" : "Download"}
+                            </span>
+                            {downloadingIds.has(row.id) && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              </div>
+                            )}
                           </button>
                         ) : (
                           <span className="text-gray-400">N/A</span>

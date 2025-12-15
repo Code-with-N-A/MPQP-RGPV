@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { useApiData } from "./ContextAPI";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyQGbi08nenrNPoHNmV3D6PUd0MkXH3X57qi0Yr75lxySDYpaBDLHHUvWPUcNGKhrLd/exec";
 
 export default function ControlD() {
+  const {API_URL} = useApiData();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingRows, setUpdatingRows] = useState([]);
@@ -15,22 +16,10 @@ export default function ControlD() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchColumn, setSearchColumn] = useState("subjectName");
 
-  const branches = [
-    "CSE",
-    "CE",
-    "ME",
-    "EE",
-    "EC",
-    "CH",
-    "PE",
-    "IC",
-    "CTM",
-    "IT",
-    "MS",
-    "OE",
-    "MOM",
-    "BCC"
-  ];
+  const [uniqueYears, setUniqueYears] = useState([]);
+  const [uniqueSemesters, setUniqueSemesters] = useState([]);
+  const [uniqueBranches, setUniqueBranches] = useState([]);
+  const [uniqueTypes, setUniqueTypes] = useState([]);
 
   const searchColumns = [
     { label: "Subject", value: "subjectName" },
@@ -72,6 +61,19 @@ export default function ControlD() {
       loadData();
     }
   }, []);
+
+  useEffect(() => {
+    if (data.length > 0) {
+      const years = [...new Set(data.map(row => String(row.year)).filter(y => y))].sort();
+      const semesters = [...new Set(data.map(row => String(row.semester)).filter(s => s))].sort();
+      const branches = [...new Set(data.map(row => String(row.branch).toLowerCase()).filter(b => b))].sort();
+      const types = [...new Set(data.map(row => String(row.type)).filter(t => t))].sort();
+      setUniqueYears(years);
+      setUniqueSemesters(semesters);
+      setUniqueBranches(branches);
+      setUniqueTypes(types);
+    }
+  }, [data]);
 
   const updateStatus = async (id, newStatus) => {
     setUpdatingRows((prev) => [...prev, id]);
@@ -147,6 +149,15 @@ export default function ControlD() {
     );
   };
 
+  // Capitalize first letter of each word
+  const titleCase = (str) => {
+    if (!str) return "";
+    return str
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
+  };
+
   const ActionButton = ({ onClick, disabled, children, loadingText, bgColor, hoverColor }) => (
     <button
       onClick={onClick}
@@ -159,11 +170,12 @@ export default function ControlD() {
   );
 
   const Table = ({ rows }) => (
-    <div className="overflow-x-auto rounded-lg shadow border border-gray-200 mb-6">
+    <div className="overflow-x-auto shadow border border-gray-200 mb-6">
       <table className="w-full text-sm border-collapse">
         <thead className="bg-gray-800 text-white">
           <tr>
             <th className="p-3 border-b text-left">ID</th>
+            <th className="p-3 border-b text-left">Date</th>
             <th className="p-3 border-b text-left">Year</th>
             <th className="p-3 border-b text-left">Sem</th>
             <th className="p-3 border-b text-left">Branch</th>
@@ -178,6 +190,7 @@ export default function ControlD() {
           {rows.map((row) => (
             <tr key={row.id} className="border-b hover:bg-gray-50">
               <td className="p-2">{highlightText(String(row.id))}</td>
+              <td className="p-2">{highlightText(String(row.timestamp))}</td>
               <td className="p-2">{highlightText(String(row.year))}</td>
               <td className="p-2">{highlightText(String(row.semester))}</td>
               <td className="p-2">{highlightText(String(row.branch))}</td>
@@ -282,28 +295,27 @@ export default function ControlD() {
           </select>
           <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="p-2 border rounded">
             <option value="">All Years</option>
-            <option value="2023">2023</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2025</option>
+            {uniqueYears.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
           </select>
           <select value={semFilter} onChange={(e) => setSemFilter(e.target.value)} className="p-2 border rounded">
             <option value="">All Semesters</option>
-            <option value="1">Sem 1</option>
-            <option value="2">Sem 2</option>
-            <option value="3">Sem 3</option>
-            <option value="4">Sem 4</option>
-            <option value="5">Sem 5</option>
-            <option value="6">Sem 6</option>
+            {uniqueSemesters.map((s) => (
+              <option key={s} value={s}>Sem {s}</option>
+            ))}
           </select>
           <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="p-2 border rounded">
             <option value="">All Types</option>
-            <option value="Regular">Regular</option>
-            <option value="Ex">Ex</option>
+            {uniqueTypes.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
           </select>
           <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="p-2 border rounded">
             <option value="">All Branches</option>
-            {branches.map((b) => <option key={b} value={b.toLowerCase()}>{b}</option>)}
+            {uniqueBranches.map((b) => (
+              <option key={b} value={b}>{titleCase(b)}</option>
+            ))}
           </select>
           <button
             className="p-2 bg-gray-600 text-white rounded hover:bg-gray-700"
