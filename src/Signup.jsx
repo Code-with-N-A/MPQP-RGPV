@@ -12,6 +12,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [showMsg, setShowMsg] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [blinkGoogle, setBlinkGoogle] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -49,22 +50,34 @@ export default function Auth() {
   const handleAuth = async (provider, name) => {
     if (loading) return;
     setLoading(true);
+    setBlinkGoogle(false); // Reset blink on new attempt
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
       if (!user.email) {
-        showNotification(`Unable to retrieve email from ${name}.`, "error");
+        showNotification("Unable to retrieve your email. Please try again.", "error");
         try {
           await deleteUser(user);
         } catch {}
         return;
       }
 
-      showNotification(`Login with ${name} successful!`, "success");
+      showNotification("Login successful! Redirecting...", "success");
       setTimeout(() => navigate(from, { replace: true }), 1500);
     } catch (error) {
-      showNotification(`${name} login failed: ${error.message}`, "error");
+      // User-friendly error messages instead of raw errors
+      let friendlyMessage = "Login failed. Please check your connection and try again.";
+      if (error.code === "auth/popup-closed-by-user") {
+        friendlyMessage = "Login cancelled. Please try again.";
+      } else if (error.code === "auth/network-request-failed") {
+        friendlyMessage = "Network error. Please check your internet and try again.";
+      } else if (error.code === "auth/account-exists-with-different-credential") {
+        friendlyMessage = "This account is linked to another provider. Please sign in with Google to continue.";
+        setBlinkGoogle(true); // Trigger Google button blink
+        setTimeout(() => setBlinkGoogle(false), 5000); // Stop blinking after 5 seconds
+      }
+      showNotification(friendlyMessage, "error");
       console.error(error);
     } finally {
       setLoading(false);
@@ -72,35 +85,23 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center px-4 py-20 relative overflow-hidden">
-      {/* Background SVG Pattern for Attractiveness */}
-      <svg
-        className="absolute inset-0 w-full h-full opacity-10"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#4F46E5" strokeWidth="0.5"/>
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
+    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-20 relative">
+      {/* Clean Background - Removed SVG for Simplicity and Professionalism */}
+      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-50"></div>
 
-      {/* Auth Card */}
-      <div className="relative w-full max-w-md bg-white p-8 shadow-2xl z-10 rounded-3xl border border-gray-200">
+      {/* Auth Card - Wider and Less Rounded for Professional Look */}
+      <div className="relative w-full max-w-lg bg-white p-10 shadow-xl z-10  border border-gray-300">
         {/* Header with Professional SVG Logo */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-10">
           {/* Custom SVG Logo for MPQP */}
           <div className="flex justify-center mb-6">
             <svg
-              width="80"
-              height="80"
+              width="90"
+              height="90"
               viewBox="0 0 80 80"
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
-              className="drop-shadow-lg"
+              className="drop-shadow-md"
             >
               {/* Outer Circle with Gradient */}
               <circle cx="40" cy="40" r="38" fill="url(#logoGradient)" stroke="#4F46E5" strokeWidth="2"/>
@@ -118,48 +119,80 @@ export default function Auth() {
               </defs>
             </svg>
           </div>
-          <h1 className="text-3xl font-extrabold text-gray-900 mb-3 tracking-tight">Welcome to MPQP</h1>
-          <p className="text-gray-600 text-base font-medium">Sign in with your preferred platform</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Welcome to MPQP</h1>
+          <p className="text-gray-600 text-lg font-medium">Sign in with your preferred platform</p>
         </div>
 
-        <div className="space-y-4">
+        {/* Buttons Layout: Google Full Width, GitHub and Twitter in One Row */}
+        <div className="space-y-6">
+          {/* Google Button - Full Width */}
           <button
             onClick={() => handleAuth(googleProvider, "Google")}
             disabled={loading}
-            className="flex items-center justify-center gap-3 py-4 px-5 bg-gray-50 text-gray-800 rounded-2xl font-semibold hover:bg-gray-100 hover:shadow-md transition-all duration-300 w-full border border-gray-200"
+            className={` cursor-pointer flex items-center justify-center gap-4 py-4 px-6 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:shadow-lg transition-all duration-300 w-full border border-gray-300 ${blinkGoogle ? 'animate-pulse' : ''}`}
           >
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" />
             Continue with Google
           </button>
 
-          <button
-            onClick={() => handleAuth(githubProvider, "GitHub")}
-            disabled={loading}
-            className="flex items-center justify-center gap-3 py-4 px-5 bg-gray-900 text-white rounded-2xl font-semibold hover:bg-gray-800 hover:shadow-md transition-all duration-300 w-full"
-          >
-            <img src="https://github.githubassets.com/images/modules/site/icons/footer/github-mark.svg" className="w-6 h-6" />
-            Continue with GitHub
-          </button>
+          {/* GitHub and Twitter in One Row */}
+          <div className="flex gap-4">
+            <button
+              onClick={() => handleAuth(githubProvider, "GitHub")}
+              disabled={loading}
+              className="cursor-pointer flex items-center justify-center gap-3 py-4 px-5 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 hover:shadow-lg transition-all duration-300 flex-1"
+            >
+              <img src="https://github.githubassets.com/images/modules/site/icons/footer/github-mark.svg" className="w-5 h-5" />
+              GitHub
+            </button>
 
-          <button
-            onClick={() => handleAuth(twitterProvider, "Twitter")}
-            disabled={loading}
-            className="flex items-center justify-center gap-3 py-4 px-5 bg-blue-500 text-white rounded-2xl font-semibold hover:bg-blue-600 hover:shadow-md transition-all duration-300 w-full"
-          >
-            <img src="https://abs.twimg.com/icons/apple-touch-icon-192x192.png" className="w-6 h-6 rounded-full" />
-            Continue with Twitter
-          </button>
+            <button
+              onClick={() => handleAuth(twitterProvider, "Twitter")}
+              disabled={loading}
+              className="cursor-pointer flex items-center justify-center gap-3 py-4 px-5 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 hover:shadow-lg transition-all duration-300 flex-1"
+            >
+              {/* Custom Grey Twitter SVG with Small Background */}
+              <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="w-3 h-3 text-gray-700"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                </svg>
+              </div>
+              Twitter
+            </button>
+          </div>
+        </div>
+
+        {/* Optional Footer for Extra Professionalism */}
+        <div className="text-center mt-8">
+          <p className="text-sm text-gray-500">By signing in, you agree to our Terms of Service and Privacy Policy.</p>
         </div>
       </div>
 
-      {/* Notification */}
+      {/* Enhanced Notification Popup */}
       {showMsg && (
         <div className="fixed top-4 inset-x-0 flex justify-center z-50 px-2">
-          <div className={`w-full sm:w-96 max-w-lg p-4 rounded-2xl shadow-lg overflow-hidden border-l-4
-            ${msg.type === "success" ? "bg-green-50 border-green-500 text-green-800" : "bg-red-50 border-red-500 text-red-800"}`}>
-            <span className="font-bold mr-2">{msg.type === "success" ? "✓" : "✗"}</span>
-            {msg.text}
-            <div className="h-1 bg-gray-200 w-full rounded-b-lg mt-1 overflow-hidden">
+          <div className="w-full sm:w-96 max-w-lg p-4 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
+            <div className="flex items-center gap-3">
+              {/* Appropriate SVG Icon based on message type */}
+              {msg.type === "success" ? (
+                <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              ) : (
+                <svg className="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+              )}
+              <span className={`text-xs font-medium leading-tight ${msg.type === "success" ? "text-green-800" : "text-red-800"}`}>
+                {msg.text}
+              </span>
+            </div>
+            <div className="h-1 bg-gray-200 w-full rounded-full mt-3 overflow-hidden">
               <div className={`h-full transition-all duration-100 ${msg.type === "success" ? "bg-green-500" : "bg-red-500"}`} style={{ width: `${progress}%` }}></div>
             </div>
           </div>
