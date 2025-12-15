@@ -8,7 +8,7 @@ export default function Home() {
   const [activePdfId, setActivePdfId] = useState(null);
   const [activeDownloadId, setActiveDownloadId] = useState(null); // New state for download highlight
   const [downloadingIds, setDownloadingIds] = useState(new Set()); // State for tracking downloading rows
-  const [disabledDownloadIds, setDisabledDownloadIds] = useState(new Set()); // New state for permanently disabled download buttons
+  const [completedDownloadIds, setCompletedDownloadIds] = useState(new Set()); // State for tracking completed downloads (for row highlighting)
 
   const [yearFilter, setYearFilter] = useState("");
   const [semFilter, setSemFilter] = useState("");
@@ -21,7 +21,6 @@ export default function Home() {
   const [uniqueTypes, setUniqueTypes] = useState([]);
 
   const rowRefs = useRef({});
-  const downloadCounter = useRef(0); // Counter to stagger downloads
 
   const loadData = async () => {
     setLoading(true);
@@ -105,29 +104,6 @@ export default function Home() {
       rowRefs.current[id].scrollIntoView({ behavior: "smooth", block: "center" });
     }
     window.open(url, "_blank");
-  };
-
-  const handleDownload = (row) => {
-    setActiveDownloadId(row.id); // Set highlight
-    setDownloadingIds(prev => new Set(prev).add(row.id));
-    setDisabledDownloadIds(prev => new Set(prev).add(row.id)); // Permanently disable
-
-    downloadCounter.current += 1;
-    setTimeout(() => {
-      const link = document.createElement('a');
-      link.href = getDownloadUrl(row.pdfUrl);
-      link.download = '';
-      link.click();
-    }, downloadCounter.current * 100); // Stagger by 100ms per download
-
-    setTimeout(() => {
-      setDownloadingIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(row.id);
-        return newSet;
-      });
-      setActiveDownloadId(null); // Remove highlight after download starts
-    }, 3000 + downloadCounter.current * 100); // Adjust timeout accordingly
   };
 
   return (
@@ -217,65 +193,97 @@ export default function Home() {
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((row, index) => (
-                    <tr
-                      key={row.id}
-                      ref={(el) => (rowRefs.current[row.id] = el)}
-                      className={`border-b hover:bg-gray-50 ${activePdfId === row.id || activeDownloadId === row.id ? "bg-yellow-100" : ""
+                  filteredData.map((row, index) => {
+                    const isDownloading = downloadingIds.has(row.id);
+                    const isCompleted = completedDownloadIds.has(row.id);
+                    const isDisabled = downloadingIds.size > 0; // Disable ALL buttons when any download is in progress
+                    return (
+                      <tr
+                        key={row.id}
+                        ref={(el) => (rowRefs.current[row.id] = el)}
+                        className={`border-b hover:bg-gray-50 ${
+                          activePdfId === row.id
+                            ? "bg-yellow-100"
+                            : isCompleted
+                            ? "bg-green-100"
+                            : ""
                         }`}
-                    >
-                      <td className="p-2">{index + 1}</td>
-                      <td className="p-2">{titleCase(String(row.year))}</td>
-                      <td className="p-2">{titleCase(String(row.semester))}</td>
-                      <td className="p-2">{titleCase(String(row.branch))}</td>
-                      <td className="p-2">{titleCase(String(row.paperCode))}</td>
-                      <td className="p-2">{titleCase(String(row.subjectName))}</td>
-                      <td className="p-2">{titleCase(String(row.type))}</td>
-                      <td className="p-2">
-                        {row.pdfUrl ? (
-                          <a
-                            href={row.pdfUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer inline-block ${activePdfId === row.id
-                                ? "bg-yellow-500 shadow-lg"
-                                : "bg-green-600 hover:bg-green-700"
-                              }`}
-                            onClick={() => setActivePdfId(row.id)}
-                          >
-                            PDF
-                          </a>
-                        ) : (
-                          <span className="text-gray-400">N/A</span>
-                        )}
-                      </td>
-                      <td className="p-2">
-                        {row.pdfUrl ? (
-                          <button
-                            onClick={() => handleDownload(row)}
-                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer relative ${activeDownloadId === row.id
-                                ? "bg-yellow-500 shadow-lg"
-                                : disabledDownloadIds.has(row.id)
+                      >
+                        <td className="p-2">{index + 1}</td>
+                        <td className="p-2">{titleCase(String(row.year))}</td>
+                        <td className="p-2">{titleCase(String(row.semester))}</td>
+                        <td className="p-2">{titleCase(String(row.branch))}</td>
+                        <td className="p-2">{titleCase(String(row.paperCode))}</td>
+                        <td className="p-2">{titleCase(String(row.subjectName))}</td>
+                        <td className="p-2">{titleCase(String(row.type))}</td>
+                        <td className="p-2">
+                          {row.pdfUrl ? (
+                            <a
+                              href={row.pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`px-3 py-1 rounded shadow text-white transition cursor-pointer inline-block ${
+                                activePdfId === row.id
+                                  ? "bg-yellow-500 shadow-lg"
+                                  : "bg-green-600 hover:bg-green-700"
+                              } ${downloadingIds.size > 0 ? "cursor-not-allowed" : ""}`}
+                              onClick={() => setActivePdfId(row.id)}
+                            >
+                              PDF
+                            </a>
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </td>
+                        <td className="p-2">
+                          {row.pdfUrl ? (
+                            <button
+                              onClick={() => {
+                                // Remove from completed if it was completed
+                                setCompletedDownloadIds(prev => {
+                                  const newSet = new Set(prev);
+                                  newSet.delete(row.id);
+                                  return newSet;
+                                });
+                                setActiveDownloadId(row.id); // Set highlight
+                                setDownloadingIds(prev => new Set(prev).add(row.id));
+                                const link = document.createElement('a');
+                                link.href = getDownloadUrl(row.pdfUrl);
+                                link.download = '';
+                                link.click();
+                                setTimeout(() => {
+                                  setDownloadingIds(prev => {
+                                    const newSet = new Set(prev);
+                                    newSet.delete(row.id);
+                                    return newSet;
+                                  });
+                                  setActiveDownloadId(null); // Remove highlight after download starts
+                                  setCompletedDownloadIds(prev => new Set(prev).add(row.id)); // Mark as completed for row highlighting
+                                }, 3000); // Adjust timeout as needed
+                              }}
+                              className={`px-3 py-1 rounded shadow text-white transition relative ${
+                                isDownloading
+                                  ? "bg-yellow-500 shadow-lg cursor-not-allowed"
+                                  : isDisabled
                                   ? "bg-gray-400 cursor-not-allowed"
-                                  : "bg-blue-600 hover:bg-blue-700"
+                                  : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
                               }`}
-                            disabled={disabledDownloadIds.has(row.id)}
-                          >
-                            <span className="relative z-10">
-                              {disabledDownloadIds.has(row.id) ? "Downloaded" : "Download"}
-                            </span>
-                            {downloadingIds.has(row.id) && (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              </div>
-                            )}
-                          </button>
-                        ) : (
-                          <span className="text-gray-400">N/A</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
+                              disabled={isDisabled}
+                            >
+                              <span className="relative z-10">Download</span>
+                              {isDownloading && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                              )}
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">N/A</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
