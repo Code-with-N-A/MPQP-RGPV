@@ -12,7 +12,7 @@ export default function Footer() {
           <h2 className="text-white text-xl font-semibold mb-4 border-l-4 border-blue-500 pl-3">About</h2>
           <p className="text-sm leading-6">
             Hello I’m <span className="text-blue-400 font-medium">MPQP</span>, Access all old and new diploma papers of RGPV, MP Polytechnic. Only question papers available here.
-            <span className="text-pink-400">2023-24-25</span> edition papers will be available soon.
+            <span className="text-pink-400">2023–24, 2024–25</span> edition papers will be available soon.
           </p>
         </div>
 

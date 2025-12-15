@@ -221,7 +221,7 @@ export default function Home() {
                   <th className="p-3 border-b text-left">Subject</th>
                   <th className="p-3 border-b text-left">Type</th>
                   <th className="p-3 border-b text-left">PDF</th>
-                  <th className="p-3 border-b text-left">PDF DOWNLOAD</th>
+                  <th className="p-3 border-b text-left hidden sm:table-cell">PDF DOWNLOAD</th>
                 </tr>
               </thead>
               <tbody>
@@ -273,7 +273,7 @@ export default function Home() {
                             <span className="text-gray-400">N/A</span>
                           )}
                         </td>
-                        <td className="p-2">
+                        <td className="p-2 hidden sm:table-cell">
                           {row.pdfUrl ? (
                             <button
                               onClick={() => {
