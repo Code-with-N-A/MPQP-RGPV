@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { useApiData } from "./ContextAPI";
 
 export default function PaperForm() {
- const { API_URL} = useApiData();
+  const [showInstructions, setShowInstructions] = useState(false);
+  const { API_URL } = useApiData();
   const [form, setForm] = useState({
     year: "",
     semester: "",
@@ -38,7 +39,7 @@ export default function PaperForm() {
     "BCC"
   ];
 
-//  Array of 4-digit paper codes
+  //  Array of 4-digit paper codes
   const paperCodes = [
     "7350", "7351", "7352", "7353", "7354", "7355", "7356", "7357", "7358",
     "7366", "7367", "7368", "7369", "7370", "7371", "7372", "7373", "7374", "7375", "7376", "7377", "7378", "7379",
@@ -241,9 +242,120 @@ export default function PaperForm() {
         {/* Header */}
         <div className="bg-gradient-to-r from-gray-600 to-gray-700 p-4 text-center">
           <h1 className="text-2xl font-bold text-white">MPQP</h1>
-          <p className="text-gray-200 mt-2">Securely upload and verify your academic papers</p>
+          <p className="text-gray-200 mt-2">
+            Securely upload and verify your academic papers
+          </p>
+
+          {/* Instructions Button */}
+          <button
+            onClick={() => setShowInstructions(!showInstructions)}
+            className="mt-3 bg-white text-black px-4 py-2 rounded hover:bg-gray-200 text-sm"
+          >
+            {showInstructions ? "Hide Instructions" : "View Instructions"}
+          </button>
         </div>
 
+        {/* Inline Instructions */}
+        {showInstructions && (
+          <div className="max-w-3xl mx-auto mt-4 px-4">
+            <div className="bg-[#fff] text-black text-sm rounded-lg shadow-lg p-5 ">
+
+              <p className="mb-4 font-semibold flex items-center gap-2">
+                {/* Warning SVG */}
+                <svg
+                  className="w-5 h-5 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 9v2m0 4h.01M5.07 19h13.86a2 2 0 001.73-3L13.73 4a2 2 0 00-3.46 0L3.34 16a2 2 0 001.73 3z"
+                  />
+                </svg>
+                Important Instructions
+              </p>
+
+              {/* Instruction List inside <p> with SVG */}
+              <p className="space-y-3 flex flex-col">
+                {/* PDF Instruction */}
+                <span className="flex items-start gap-2">
+                  <svg
+                    className="w-5 h-5 text-blue-600 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M7 3h7l5 5v13a1 1 0 01-1 1H7a1 1 0 01-1-1V4a1 1 0 011-1z"
+                    />
+                  </svg>
+                  upload only original and clear pdf files
+                </span>
+
+                {/* Correct Info */}
+                <span className="flex items-start gap-2">
+                  <svg
+                    className="w-5 h-5 text-green-600 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                  all information in the pdf must be correct
+                </span>
+
+                {/* Fake Warning */}
+                <span className="flex items-start gap-2">
+                  <svg
+                    className="w-5 h-5 text-red-600 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                  wrong or fake details may lead to rejection
+                </span>
+
+                {/* Time Info */}
+                <span className="flex items-start gap-2">
+                  <svg
+                    className="w-5 h-5 text-gray-700 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  if the uploaded pdf and its information are correct, your paper will
+                  be published on the website within 24 hours
+                </span>
+              </p>
+            </div>
+          </div>
+        )}
         {/* Form */}
         <div className="p-4">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -409,11 +521,10 @@ export default function PaperForm() {
             <button
               type="submit"
               disabled={loading || disableSubmit || isRequesting}
-                            className={`w-full p-4 rounded-lg text-white font-bold text-lg transition-all duration-200 transform ${
-                loading || disableSubmit || isRequesting
+              className={`w-full p-4 rounded-lg text-white font-bold text-lg transition-all duration-200 transform ${loading || disableSubmit || isRequesting
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-gray-700 hover:bg-gray-800 active:scale-95"
-              }`}
+                }`}
             >
               {loading ? (
                 <div className="flex items-center justify-center gap-3">
