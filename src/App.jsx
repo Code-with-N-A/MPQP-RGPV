@@ -13,14 +13,12 @@ import Dashboard from "./DataFolowD";
 import ControlD from "./DataControl";
 import Report from "./Report";
 import { ApiProvider } from "./ContextAPI";
-import Email from "./Email";
 
 function App() {
   return (
     <>
       <Nave />
       <SignupNotification />
-      <Email/>
 
       <ApiProvider>
         <Routes>
