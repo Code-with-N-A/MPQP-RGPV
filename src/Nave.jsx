@@ -59,10 +59,27 @@ function Nave() {
     <>
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 w-full z-50 flex items-center justify-between bg-white/95 backdrop-blur-md shadow-md/5 px-4 lg:px-6 py-2 font-[Poppins]">
-        {/* Logo */}
-        <h2 className="text-2xl text-blue-700 tracking-wide font-bold">
-          MPQP
-        </h2>
+        {/* Logo - Simplified SVG without Circle */}
+        <div className="flex items-center">
+          <svg
+            width="80"
+            height="40"
+            viewBox="0 0 80 40"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="drop-shadow-md"
+          >
+            <text x="40" y="25" textAnchor="middle" fill="url(#textGradient)" fontSize="24" fontWeight="bold" fontFamily="Arial, sans-serif">
+              MPQP
+            </text>
+            <defs>
+              <linearGradient id="textGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" style={{ stopColor: '#4F46E5', stopOpacity: 1 }} />
+                <stop offset="100%" style={{ stopColor: '#7C3AED', stopOpacity: 1 }} />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
 
         {/* Desktop / Large Tablet Search */}
         <div className="hidden lg:flex flex-1 justify-center relative">
@@ -161,7 +178,27 @@ function Nave() {
       >
         {/* Sidebar Top */}
         <div className="flex items-center justify-between px-4 py-4 bg-blue-50 border-b border-orange-200 rounded-bl-xl">
-          <h2 className="text-2xl text-blue-700 font-bold">MPQP</h2>
+          {/* Logo in Sidebar - Smaller SVG without Circle */}
+          <div className="flex items-center">
+            <svg
+              width="60"
+              height="30"
+              viewBox="0 0 80 40"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="drop-shadow-md"
+            >
+              <text x="40" y="25" textAnchor="middle" fill="url(#textGradientSidebar)" fontSize="20" fontWeight="bold" fontFamily="Arial, sans-serif">
+                MPQP
+              </text>
+              <defs>
+                <linearGradient id="textGradientSidebar" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" style={{ stopColor: '#4F46E5', stopOpacity: 1 }} />
+                  <stop offset="100%" style={{ stopColor: '#7C3AED', stopOpacity: 1 }} />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
           <UserProfile
             user={user}
             onLogout={handleLogout}

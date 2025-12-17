@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useApiData } from "./ContextAPI";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebase";
+import { useNavigate } from "react-router-dom";
 
 export default function Home() {
   const { API_URL } = useApiData();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activePdfId, setActivePdfId] = useState(null);
-  const [activeDownloadId, setActiveDownloadId] = useState(null); // New state for download highlight
-  const [downloadingIds, setDownloadingIds] = useState(new Set()); // State for tracking downloading rows
-  const [completedDownloadIds, setCompletedDownloadIds] = useState(new Set()); // State for tracking completed downloads (for row highlighting)
 
   const [yearFilter, setYearFilter] = useState("");
   const [semFilter, setSemFilter] = useState("");
@@ -20,7 +20,18 @@ export default function Home() {
   const [uniqueBranches, setUniqueBranches] = useState([]);
   const [uniqueTypes, setUniqueTypes] = useState([]);
 
+  const [user, setUser] = useState(null); // State to track authenticated user
+
   const rowRefs = useRef({});
+  const navigate = useNavigate();
+
+  // Listen for auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -88,47 +99,12 @@ export default function Home() {
       .join(" ");
   };
 
-  // Helper function to convert Google Drive view URL to direct download URL
-  const getDownloadUrl = (url) => {
-    if (!url) return "";
-    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)\//);
-    if (match) {
-      return `https://drive.google.com/uc?export=download&id=${match[1]}`;
-    }
-    return url; // Fallback if not a Google Drive link
-  };
-
-  // Function to handle download using fetch and blob for cross-device compatibility
-  const handleDownload = async (id, url, filename) => {
-    setDownloadingIds(prev => new Set(prev).add(id));
-    setActiveDownloadId(id);
-    try {
-      const downloadUrl = getDownloadUrl(url);
-      const response = await fetch(downloadUrl);
-      if (!response.ok) throw new Error('Download failed');
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = blobUrl;
-      link.download = filename || 'download.pdf';
-      link.click();
-      URL.revokeObjectURL(blobUrl);
-      setCompletedDownloadIds(prev => new Set(prev).add(id));
-    } catch (error) {
-      console.error('Download failed:', error);
-      // Fallback: open in new tab if download fails
-      window.open(getDownloadUrl(url), '_blank');
-    } finally {
-      setDownloadingIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(id);
-        return newSet;
-      });
-      setActiveDownloadId(null);
-    }
-  };
-
   const handlePdfClick = (id, url) => {
+    if (!user) {
+      // Redirect to Auth page if not logged in
+      navigate("/signup"); // Assuming "/auth" is your Auth route
+      return;
+    }
     setActivePdfId(id);
     // Scroll to the row smoothly
     if (rowRefs.current[id]) {
@@ -147,7 +123,6 @@ export default function Home() {
              bg-white
              px-4 py-2"
         >
-
           <div className="flex gap-4 overflow-x-auto scrollbar-hide">
             <select
               value={yearFilter}
@@ -221,92 +196,46 @@ export default function Home() {
                   <th className="p-3 border-b text-left">Subject</th>
                   <th className="p-3 border-b text-left">Type</th>
                   <th className="p-3 border-b text-left">PDF</th>
-                  <th className="p-3 border-b text-left hidden sm:table-cell">PDF DOWNLOAD</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredData.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="p-4 text-center text-gray-500">
+                    <td colSpan="8" className="p-4 text-center text-gray-500">
                       No papers found.
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((row, index) => {
-                    const isDownloading = downloadingIds.has(row.id);
-                    const isCompleted = completedDownloadIds.has(row.id);
-                    const isDisabled = downloadingIds.size > 0; // Disable ALL buttons when any download is in progress
-                    const filename = `${titleCase(row.subjectName || 'paper')}.pdf`.replace(/[^a-zA-Z0-9.\-_]/g, '_'); // Sanitize filename
-                    return (
-                      <tr
-                        key={row.id}
-                        ref={(el) => (rowRefs.current[row.id] = el)}
-                        className={`border-b hover:bg-gray-50 ${activePdfId === row.id
-                            ? "bg-yellow-100"
-                            : isCompleted
-                              ? "bg-green-100"
-                              : ""
-                          }`}
-                      >
-                        <td className="p-2">{index + 1}</td>
-                        <td className="p-2">{titleCase(String(row.year))}</td>
-                        <td className="p-2">{titleCase(String(row.semester))}</td>
-                        <td className="p-2">{titleCase(String(row.branch))}</td>
-                        <td className="p-2">{titleCase(String(row.paperCode))}</td>
-                        <td className="p-2">{titleCase(String(row.subjectName))}</td>
-                        <td className="p-2">{titleCase(String(row.type))}</td>
-                        <td className="p-2">
-                          {row.pdfUrl ? (
-                            <a
-                              href={row.pdfUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={`px-3 py-1 rounded shadow text-white transition cursor-pointer inline-block ${activePdfId === row.id
-                                  ? "bg-yellow-500 shadow-lg"
-                                  : "bg-green-600 hover:bg-green-700"
-                                } ${downloadingIds.size > 0 ? "cursor-not-allowed" : ""}`}
-                              onClick={() => setActivePdfId(row.id)}
-                            >
-                              PDF
-                            </a>
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
-                          )}
-                        </td>
-                        <td className="p-2 hidden sm:table-cell">
-                          {row.pdfUrl ? (
-                            <button
-                              onClick={() => {
-                                // Remove from completed if it was completed
-                                setCompletedDownloadIds(prev => {
-                                  const newSet = new Set(prev);
-                                  newSet.delete(row.id);
-                                  return newSet;
-                                });
-                                handleDownload(row.id, row.pdfUrl, filename);
-                              }}
-                              className={`px-3 py-1 rounded shadow text-white transition relative ${isDownloading
-                                  ? "bg-yellow-500 shadow-lg cursor-not-allowed"
-                                  : isDisabled
-                                    ? "bg-gray-400 cursor-not-allowed"
-                                    : "bg-blue-600 hover:bg-blue-700 cursor-pointer"
-                                }`}
-                              disabled={isDisabled}
-                            >
-                              <span className="relative z-10">Download</span>
-                              {isDownloading && (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                </div>
-                              )}
-                            </button>
-                          ) : (
-                            <span className="text-gray-400">N/A</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })
+                  filteredData.map((row, index) => (
+                    <tr
+                      key={row.id}
+                      ref={(el) => (rowRefs.current[row.id] = el)}
+                      className={`border-b hover:bg-gray-50 ${activePdfId === row.id ? "bg-yellow-100" : ""}`}
+                    >
+                      <td className="p-2">{index + 1}</td>
+                      <td className="p-2">{titleCase(String(row.year))}</td>
+                      <td className="p-2">{titleCase(String(row.semester))}</td>
+                      <td className="p-2">{titleCase(String(row.branch))}</td>
+                      <td className="p-2">{titleCase(String(row.paperCode))}</td>
+                      <td className="p-2">{titleCase(String(row.subjectName))}</td>
+                      <td className="p-2">{titleCase(String(row.type))}</td>
+                      <td className="p-2">
+                        {row.pdfUrl ? (
+                          <button
+                            onClick={() => handlePdfClick(row.id, row.pdfUrl)}
+                            className={`px-3 py-1 rounded shadow text-white transition cursor-pointer ${activePdfId === row.id
+                                ? "bg-yellow-500 shadow-lg"
+                                : "bg-green-600 hover:bg-green-700"
+                              }`}
+                          >
+                            PDF
+                          </button>
+                        ) : (
+                          <span className="text-gray-400">N/A</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>

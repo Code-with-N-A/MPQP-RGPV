@@ -10,6 +10,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 export default function Auth() {
   const [msg, setMsg] = useState({ text: "", type: "" });
   const [loading, setLoading] = useState(false);
+  const [loadingProvider, setLoadingProvider] = useState(null); // Track which provider is loading
   const [showMsg, setShowMsg] = useState(false);
   const [progress, setProgress] = useState(0);
   const [blinkGoogle, setBlinkGoogle] = useState(false);
@@ -50,6 +51,7 @@ export default function Auth() {
   const handleAuth = async (provider, name) => {
     if (loading) return;
     setLoading(true);
+    setLoadingProvider(name); // Set which provider is loading
     setBlinkGoogle(false); // Reset blink on new attempt
     try {
       const result = await signInWithPopup(auth, provider);
@@ -81,16 +83,17 @@ export default function Auth() {
       console.error(error);
     } finally {
       setLoading(false);
+      setLoadingProvider(null); // Reset loading provider
     }
   };
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4 py-20 relative">
-      {/* Clean Background - Removed SVG for Simplicity and Professionalism */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 opacity-50"></div>
+      {/* Clean Professional Background - Plain White */}
+      <div className="absolute inset-0 bg-white"></div>
 
-      {/* Auth Card - Wider and Less Rounded for Professional Look */}
-      <div className="relative w-full max-w-lg bg-white p-10 shadow-xl z-10  border border-gray-300">
+      {/* Auth Card - Professional Look */}
+      <div className="relative w-full max-w-lg bg-white p-10 shadow-xl z-10 border border-gray-300 rounded-lg">
         {/* Header with Professional SVG Logo */}
         <div className="text-center mb-10">
           {/* Custom SVG Logo for MPQP */}
@@ -129,10 +132,13 @@ export default function Auth() {
           <button
             onClick={() => handleAuth(googleProvider, "Google")}
             disabled={loading}
-            className={` cursor-pointer flex items-center justify-center gap-4 py-4 px-6 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:shadow-lg transition-all duration-300 w-full border border-gray-300 ${blinkGoogle ? 'animate-pulse' : ''}`}
+            className={`cursor-pointer flex items-center justify-center gap-2 py-4 px-6 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:shadow-lg transition-all duration-300 w-full border border-gray-300 ${blinkGoogle ? 'animate-pulse' : ''} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" />
             Continue with Google
+            {loadingProvider === "Google" && (
+              <div className="w-3 h-3 border-2 border-gray-700 border-t-transparent rounded-full animate-spin"></div>
+            )}
           </button>
 
           {/* GitHub and Twitter in One Row */}
@@ -140,16 +146,19 @@ export default function Auth() {
             <button
               onClick={() => handleAuth(githubProvider, "GitHub")}
               disabled={loading}
-              className="cursor-pointer flex items-center justify-center gap-3 py-4 px-5 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 hover:shadow-lg transition-all duration-300 flex-1"
+              className={`cursor-pointer flex items-center justify-center gap-2 py-4 px-5 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 hover:shadow-lg transition-all duration-300 flex-1 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               <img src="https://github.githubassets.com/images/modules/site/icons/footer/github-mark.svg" className="w-5 h-5" />
               GitHub
+              {loadingProvider === "GitHub" && (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
             </button>
 
             <button
               onClick={() => handleAuth(twitterProvider, "Twitter")}
               disabled={loading}
-              className="cursor-pointer flex items-center justify-center gap-3 py-4 px-5 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 hover:shadow-lg transition-all duration-300 flex-1"
+              className={`cursor-pointer flex items-center justify-center gap-2 py-4 px-5 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 hover:shadow-lg transition-all duration-300 flex-1 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {/* Custom Grey Twitter SVG with Small Background */}
               <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
@@ -163,6 +172,9 @@ export default function Auth() {
                 </svg>
               </div>
               Twitter
+              {loadingProvider === "Twitter" && (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              )}
             </button>
           </div>
         </div>
