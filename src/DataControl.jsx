@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useApiData } from "./ContextAPI";
 
-
 export default function ControlD() {
-  const {API_URL} = useApiData();
+  const { API_URL } = useApiData();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updatingRows, setUpdatingRows] = useState([]);
+  const [updatingRows, setUpdatingRows] = useState({}); // { [id]: action }
   const [expandedSection, setExpandedSection] = useState(null);
 
   const [yearFilter, setYearFilter] = useState("");
@@ -76,7 +75,8 @@ export default function ControlD() {
   }, [data]);
 
   const updateStatus = async (id, newStatus) => {
-    setUpdatingRows((prev) => [...prev, id]);
+    const action = newStatus.toLowerCase() === 'disabled' ? 'disable' : 'enable';
+    setUpdatingRows((prev) => ({ ...prev, [id]: action }));
     try {
       const res = await fetch(API_URL, {
         method: "POST",
@@ -92,13 +92,17 @@ export default function ControlD() {
       console.error(err);
       alert("Error updating status.");
     } finally {
-      setUpdatingRows((prev) => prev.filter((i) => i !== id));
+      setUpdatingRows((prev) => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
     }
   };
 
   const deleteRow = async (id) => {
     if (!window.confirm("Are you sure you want to delete this record?")) return;
-    setUpdatingRows((prev) => [...prev, id]);
+    setUpdatingRows((prev) => ({ ...prev, [id]: 'delete' }));
     try {
       const res = await fetch(API_URL, {
         method: "POST",
@@ -111,29 +115,35 @@ export default function ControlD() {
       console.error(err);
       alert("Error deleting record.");
     } finally {
-      setUpdatingRows((prev) => prev.filter((i) => i !== id));
+      setUpdatingRows((prev) => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
     }
   };
 
-  const filteredData = data.filter((row) => {
-    const rowYear = String(row.year || "").trim();
-    const rowSem = String(row.semester || "").trim();
-    const rowType = String(row.type || "").trim().toLowerCase();
-    const rowBranch = String(row.branch || "").trim().toLowerCase();
+  const filteredData = data
+    .filter((row) => {
+      const rowYear = String(row.year || "").trim();
+      const rowSem = String(row.semester || "").trim();
+      const rowType = String(row.type || "").trim().toLowerCase();
+      const rowBranch = String(row.branch || "").trim().toLowerCase();
 
-    const yearMatch = yearFilter ? rowYear === yearFilter.trim() : true;
-    const semMatch = semFilter ? rowSem === semFilter.trim() : true;
-    const typeMatch = typeFilter ? rowType === typeFilter.trim().toLowerCase() : true;
-    const branchMatch = branchFilter ? rowBranch === branchFilter.trim().toLowerCase() : true;
+      const yearMatch = yearFilter ? rowYear === yearFilter.trim() : true;
+      const semMatch = semFilter ? rowSem === semFilter.trim() : true;
+      const typeMatch = typeFilter ? rowType === typeFilter.trim().toLowerCase() : true;
+      const branchMatch = branchFilter ? rowBranch === branchFilter.trim().toLowerCase() : true;
 
-    let searchMatch = true;
-    if (searchQuery.trim() !== "") {
-      const value = String(row[searchColumn] || "").toLowerCase();
-      searchMatch = value.includes(searchQuery.toLowerCase());
-    }
+      let searchMatch = true;
+      if (searchQuery.trim() !== "") {
+        const value = String(row[searchColumn] || "").toLowerCase();
+        searchMatch = value.includes(searchQuery.toLowerCase());
+      }
 
-    return yearMatch && semMatch && typeMatch && branchMatch && searchMatch;
-  });
+      return yearMatch && semMatch && typeMatch && branchMatch && searchMatch;
+    })
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by date descending (newest first)
 
   const newRows = filteredData.slice(0, 10);
   const enabledRows = filteredData.filter((r) => r.status?.toLowerCase() === "enabled");
@@ -158,6 +168,13 @@ export default function ControlD() {
       .join(" ");
   };
 
+  // Format date from API timestamp
+  const formatDate = (timestamp) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('en-IN'); // Formats as DD/MM/YYYY for Indian locale, adjust if needed
+  };
+
   const ActionButton = ({ onClick, disabled, children, loadingText, bgColor, hoverColor }) => (
     <button
       onClick={onClick}
@@ -174,6 +191,7 @@ export default function ControlD() {
       <table className="w-full text-sm border-collapse">
         <thead className="bg-gray-800 text-white">
           <tr>
+            <th className="p-3 border-b text-left">NO</th>
             <th className="p-3 border-b text-left">ID</th>
             <th className="p-3 border-b text-left">Date</th>
             <th className="p-3 border-b text-left">Year</th>
@@ -187,10 +205,11 @@ export default function ControlD() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
+          {rows.map((row, index) => (
             <tr key={row.id} className="border-b hover:bg-gray-50">
+              <td className="p-2">{index + 1}</td>
               <td className="p-2">{highlightText(String(row.id))}</td>
-              <td className="p-2">{highlightText(String(row.timestamp))}</td>
+              <td className="p-2">{highlightText(formatDate(row.timestamp))}</td>
               <td className="p-2">{highlightText(String(row.year))}</td>
               <td className="p-2">{highlightText(String(row.semester))}</td>
               <td className="p-2">{highlightText(String(row.branch))}</td>
@@ -215,7 +234,7 @@ export default function ControlD() {
                 {row.status?.toLowerCase() === "enabled" ? (
                   <ActionButton
                     onClick={() => updateStatus(row.id, "Disabled")}
-                    disabled={updatingRows.includes(row.id)}
+                    disabled={updatingRows[row.id] === 'disable'}
                     loadingText="Disabling..."
                     bgColor="bg-red-600"
                     hoverColor="bg-red-700"
@@ -225,7 +244,7 @@ export default function ControlD() {
                 ) : (
                   <ActionButton
                     onClick={() => updateStatus(row.id, "Enabled")}
-                    disabled={updatingRows.includes(row.id)}
+                    disabled={updatingRows[row.id] === 'enable'}
                     loadingText="Enabling..."
                     bgColor="bg-blue-600"
                     hoverColor="bg-blue-700"
@@ -235,7 +254,7 @@ export default function ControlD() {
                 )}
                 <ActionButton
                   onClick={() => deleteRow(row.id)}
-                  disabled={updatingRows.includes(row.id)}
+                  disabled={updatingRows[row.id] === 'delete'}
                   loadingText="Deleting..."
                   bgColor="bg-gray-700"
                   hoverColor="bg-gray-800"

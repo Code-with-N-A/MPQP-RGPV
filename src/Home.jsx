@@ -22,6 +22,10 @@ export default function Home() {
 
   const [user, setUser] = useState(null); // State to track authenticated user
 
+  // New states for sorting
+  const [sortColumn, setSortColumn] = useState("subjectName"); // Default sort by subjectName
+  const [sortDirection, setSortDirection] = useState("asc"); // asc or desc
+
   const rowRefs = useRef({});
   const navigate = useNavigate();
 
@@ -78,7 +82,17 @@ export default function Home() {
     }
   }, [data]);
 
-  // Filter only enabled rows and sort by subject name alphabetically
+  // Function to handle sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
+  // Filter only enabled rows and sort based on sortColumn and sortDirection, then by date descending
   const filteredData = data
     .filter((row) => row.status?.toLowerCase() === "enabled")
     .filter((row) => {
@@ -88,9 +102,28 @@ export default function Home() {
       const branchMatch = branchFilter ? String(row.branch).toLowerCase() === branchFilter : true;
       return yearMatch && semMatch && typeMatch && branchMatch;
     })
-    .sort((a, b) => (a.subjectName || "").toLowerCase().localeCompare((b.subjectName || "").toLowerCase()));
+    .sort((a, b) => {
+      // First, sort by date descending (newest first)
+      const dateA = new Date(a.timestamp);
+      const dateB = new Date(b.timestamp);
+      if (dateA > dateB) return -1;
+      if (dateA < dateB) return 1;
+      // Then, sort by the selected column
+      let aValue = a[sortColumn] || "";
+      let bValue = b[sortColumn] || "";
+      if (sortColumn === "year" || sortColumn === "semester") {
+        aValue = Number(aValue);
+        bValue = Number(bValue);
+      } else {
+        aValue = String(aValue).toLowerCase();
+        bValue = String(bValue).toLowerCase();
+      }
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
+      return 0;
+    });
 
-  // Capitalize first letter of each word
+  // Capitalize first letter of each word (for subject name)
   const titleCase = (str) => {
     if (!str) return "";
     return str
@@ -189,12 +222,24 @@ export default function Home() {
               <thead className="bg-gray-800 text-white">
                 <tr>
                   <th className="p-3 border-b text-left">No</th>
-                  <th className="p-3 border-b text-left">Year</th>
-                  <th className="p-3 border-b text-left">Sem</th>
-                  <th className="p-3 border-b text-left">Branch</th>
-                  <th className="p-3 border-b text-left">Paper Code</th>
-                  <th className="p-3 border-b text-left">Subject</th>
-                  <th className="p-3 border-b text-left">Type</th>
+                  <th className="p-3 border-b text-left cursor-pointer" onClick={() => handleSort("year")}>
+                    Year {sortColumn === "year" && (sortDirection === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th className="p-3 border-b text-left cursor-pointer" onClick={() => handleSort("semester")}>
+                    Sem {sortColumn === "semester" && (sortDirection === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th className="p-3 border-b text-left cursor-pointer" onClick={() => handleSort("branch")}>
+                    Branch {sortColumn === "branch" && (sortDirection === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th className="p-3 border-b text-left cursor-pointer" onClick={() => handleSort("paperCode")}>
+                    Paper Code {sortColumn === "paperCode" && (sortDirection === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th className="p-3 border-b text-left cursor-pointer" onClick={() => handleSort("subjectName")}>
+                    Subject {sortColumn === "subjectName" && (sortDirection === "asc" ? "↑" : "↓")}
+                  </th>
+                  <th className="p-3 border-b text-left cursor-pointer" onClick={() => handleSort("type")}>
+                    Type {sortColumn === "type" && (sortDirection === "asc" ? "↑" : "↓")}
+                  </th>
                   <th className="p-3 border-b text-left">PDF</th>
                 </tr>
               </thead>
@@ -215,9 +260,9 @@ export default function Home() {
                       <td className="p-2">{index + 1}</td>
                       <td className="p-2">{titleCase(String(row.year))}</td>
                       <td className="p-2">{titleCase(String(row.semester))}</td>
-                      <td className="p-2">{titleCase(String(row.branch))}</td>
+                      <td className="p-2">{String(row.branch).toUpperCase()}</td>
                       <td className="p-2">{titleCase(String(row.paperCode))}</td>
-                      <td className="p-2">{titleCase(String(row.subjectName))}</td>
+                      <td className="p-2">{String(row.subjectName).toUpperCase()}</td>
                       <td className="p-2">{titleCase(String(row.type))}</td>
                       <td className="p-2">
                         {row.pdfUrl ? (
