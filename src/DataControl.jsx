@@ -223,7 +223,7 @@ export default function ControlD() {
                   <button
                     onClick={(e) => {
                       e.preventDefault(); // Prevent page reload
-                      const mailtoLink = `mailto:${row.email}?cc=mpqp073@gmail.com&subject=${encodeURIComponent(
+                      const mailtoLink = `mailto:${row.email}?subject=${encodeURIComponent(
                         "MPQP Polytechnic - Issue Found in Your Uploaded Data"
                       )}&body=${encodeURIComponent(
                         `Dear User,
@@ -268,6 +268,7 @@ Website: https://mpqp.vercel.app/
                   <span className="text-gray-400">N/A</span>
                 )}
               </td>
+
 
               <td className="p-2">
                 {row.pdfUrl ? (
