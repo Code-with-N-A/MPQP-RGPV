@@ -93,7 +93,7 @@ export default function Auth() {
       <div className="absolute inset-0 bg-white"></div>
 
       {/* Auth Card - Professional Look */}
-      <div className="relative w-full max-w-lg bg-white p-10 shadow-xl z-10 border border-gray-300 rounded-lg">
+      <div className="relative w-full max-w-lg bg-white p-10 shadow-xl border border-gray-300 ">
         {/* Header with Professional SVG Logo */}
         <div className="text-center mb-10">
           {/* Custom SVG Logo for MPQP */}
