@@ -10,7 +10,7 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
 
   // Only this email is allowed
-  const ADMIN_EMAIL = "mpqp073@gmail.com";
+  const ADMIN_EMAIL = "codewithna73@gmail.com";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {

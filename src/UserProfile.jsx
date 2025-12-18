@@ -205,7 +205,7 @@ export default function UserProfile({ user, onLogout, sidebarClose }) {
                   </button>
 
                   {/* ⭐ ONLY SHOW FOR ADMIN EMAIL ⭐ */}
-                  {user.email === "mpqp073@gmail.com" && (
+                  {user.email === "codewithna73@gmail.com" && (
                     <button
                       onClick={() => {
                         navigate("/@-nitesh-748933*2");
