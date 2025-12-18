@@ -2,9 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { auth } from "./firebase";
 import { useApiData } from "./ContextAPI";
 
-// Refresh interval for polling
-const REFRESH_INTERVAL = 3000; // 3 seconds
-
 // SVG Icon Components for Professional Look
 const LockIcon = () => (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -112,7 +109,7 @@ const DemoProgressBar = () => (
     </div>
 );
 
-export default function ApprovalS() {
+function ApprovalS() {
     const { API_URL } = useApiData();
     const [myPapers, setMyPapers] = useState(() => {
         const cached = localStorage.getItem("myPapers");
@@ -122,7 +119,6 @@ export default function ApprovalS() {
     const [error, setError] = useState("");
     const [lastUpdated, setLastUpdated] = useState(null);
 
-    const intervalRef = useRef(null);
     const user = auth.currentUser;
     const userEmail = user?.email?.toLowerCase() || "";
 
@@ -159,19 +155,9 @@ export default function ApprovalS() {
         }
     };
 
-    // Polling effect for real-time updates
+    // Effect to fetch data on mount or when userEmail changes
     useEffect(() => {
-        if (!userEmail) return;
-
-        if (intervalRef.current) clearInterval(intervalRef.current);
-
         fetchMyData();
-        intervalRef.current = setInterval(fetchMyData, REFRESH_INTERVAL);
-
-        return () => {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-        };
     }, [userEmail]);
 
     // Handle manual refresh
@@ -310,8 +296,6 @@ export default function ApprovalS() {
                         <p className="text-sm text-gray-400">Start by uploading a paper to see your submissions here.</p>
                     </div>
                 ) : (
-                   
-
                     <div className="bg-white rounded-lg shadow-md overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="min-w-full text-sm">
@@ -324,7 +308,7 @@ export default function ApprovalS() {
                                         <th className="p-4 text-left border-b">Sem</th>
                                         <th className="p-4 text-left border-b">Branch</th>
                                         <th className="p-4 text-left border-b">Type</th>
-                                        <th className="p-4 text-left border-b">Status</th>
+                                                                                <th className="p-4 text-left border-b">Status</th>
                                         <th className="p-4 text-left border-b">PDF</th>
                                     </tr>
                                 </thead>
@@ -368,17 +352,9 @@ export default function ApprovalS() {
                         </div>
                     </div>
                 )}
-
-                {/* Footer Note */}
-                <div className="mt-8 bg-white p-4 rounded-lg shadow-sm text-center">
-                    <div className="flex items-center justify-center">
-                        <div className="text-indigo-600 mr-2">
-                            <LockIcon />
-                        </div>
-                        <p className="text-xs text-gray-500">Your data is visible only to your logged-in email account. Unauthorized access is not allowed.</p>
-                    </div>
-                </div>
             </div>
         </div>
     );
 }
+
+export default ApprovalS;
