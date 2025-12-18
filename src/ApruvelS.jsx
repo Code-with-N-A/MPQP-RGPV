@@ -2,6 +2,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { auth } from "./firebase";
 import { useApiData } from "./ContextAPI";
 
+// Refresh interval for polling
+const REFRESH_INTERVAL = 3000; // 3 seconds
+
 // SVG Icon Components for Professional Look
 const LockIcon = () => (
     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -40,15 +43,12 @@ const ProgressBar = ({ status }) => {
 
     return (
         <div className="flex items-center justify-center space-x-2">
-            {/* Step 1: Data Received - Always Green */}
             <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
                 <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
             </div>
-            {/* Line 1 */}
             <div className={`w-6 h-0.5 ${isApproved ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-            {/* Step 2: Pending - Yellow with Forward Progress Animation */}
             <div className={`w-4 h-4 rounded-full ${isApproved ? 'bg-green-500' : 'bg-yellow-500'} flex items-center justify-center ${isPending ? 'animate-bounce' : ''}`}>
                 {isApproved && (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -59,9 +59,7 @@ const ProgressBar = ({ status }) => {
                     <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
                 )}
             </div>
-            {/* Line 2 */}
             <div className={`w-6 h-0.5 ${isApproved ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-            {/* Step 3: Approved - Blue when pending, Green when approved */}
             <div className={`w-4 h-4 rounded-full ${isApproved ? 'bg-green-500' : 'bg-blue-500'} flex items-center justify-center`}>
                 {isApproved && (
                     <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -76,10 +74,8 @@ const ProgressBar = ({ status }) => {
     );
 };
 
-// Demo Progress Bar Component for Status Info
 const DemoProgressBar = () => (
     <div className="flex items-center justify-center space-x-2 mb-4">
-        {/* Step 1: Data Received */}
         <div className="flex flex-col items-center">
             <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
                 <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -88,18 +84,14 @@ const DemoProgressBar = () => (
             </div>
             <span className="text-xs text-gray-600 mt-1">Data Received</span>
         </div>
-        {/* Line 1 */}
         <div className="w-6 h-0.5 bg-yellow-500"></div>
-        {/* Step 2: Pending */}
         <div className="flex flex-col items-center">
             <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center animate-bounce">
                 <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
             </div>
             <span className="text-xs text-gray-600 mt-1">Pending</span>
         </div>
-        {/* Line 2 */}
         <div className="w-6 h-0.5 bg-gray-300"></div>
-        {/* Step 3: Approved */}
         <div className="flex flex-col items-center">
             <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
                 <div className="w-2 h-2 bg-white rounded-full"></div>
@@ -109,23 +101,27 @@ const DemoProgressBar = () => (
     </div>
 );
 
-function ApprovalS() {
+export default function ApprovalS() {
     const { API_URL } = useApiData();
-    const [myPapers, setMyPapers] = useState(() => {
-        const cached = localStorage.getItem("myPapers");
-        return cached ? JSON.parse(cached) : [];
-    });
-    const [loading, setLoading] = useState(myPapers.length === 0);
+    const [myPapers, setMyPapers] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [lastUpdated, setLastUpdated] = useState(null);
 
+    const intervalRef = useRef(null);
     const user = auth.currentUser;
     const userEmail = user?.email?.toLowerCase() || "";
 
-    // Fetch user data from API
-    const fetchMyData = async () => {
+    const loadData = async (bypassCache = false) => {
         if (!userEmail) {
             setMyPapers([]);
+            setLoading(false);
+            return;
+        }
+
+        const cached = sessionStorage.getItem("approvalData");
+        if (cached && !bypassCache) {
+            setMyPapers(JSON.parse(cached));
             setLoading(false);
             return;
         }
@@ -136,6 +132,7 @@ function ApprovalS() {
 
             if (json.status !== "success" || !Array.isArray(json.rows)) {
                 setError("Unable to fetch data. Please try again later.");
+                setLoading(false);
                 return;
             }
 
@@ -144,7 +141,7 @@ function ApprovalS() {
             );
 
             setMyPapers(filtered);
-            localStorage.setItem("myPapers", JSON.stringify(filtered));
+            sessionStorage.setItem("approvalData", JSON.stringify(filtered));
             setLastUpdated(new Date());
             setError("");
         } catch (err) {
@@ -155,18 +152,27 @@ function ApprovalS() {
         }
     };
 
-    // Effect to fetch data on mount or when userEmail changes
+
+    // Polling effect
     useEffect(() => {
-        fetchMyData();
+        if (!userEmail) return;
+
+        if (window.approvalInterval) return; // Prevent multiple intervals
+
+        loadData();
+        window.approvalInterval = setInterval(loadData, REFRESH_INTERVAL);
+
+        return () => {
+            clearInterval(window.approvalInterval);
+            window.approvalInterval = null;
+        };
     }, [userEmail]);
 
-    // Handle manual refresh
+    // Updated handleRefresh function
     const handleRefresh = () => {
         setLoading(true);
-        fetchMyData();
+        loadData(true); // bypassCache = true ensures fresh fetch
     };
-
-    // UI for unauthenticated users
     if (!user) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
@@ -181,7 +187,6 @@ function ApprovalS() {
         );
     }
 
-    // Loading state
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -193,7 +198,6 @@ function ApprovalS() {
         );
     }
 
-    // Error state
     if (error) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center bg-red-50 p-6 pt-10">
@@ -215,11 +219,9 @@ function ApprovalS() {
         );
     }
 
-    // Main UI with Professional Layout
     return (
         <div className="min-h-screen bg-gray-100 pt-10">
             <div className="container mx-auto px-4 py-8 max-w-7xl">
-                {/* Header Section */}
                 <div className="bg-white shadow-md rounded-lg p-6 mb-8">
                     <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
                         <div>
@@ -245,9 +247,7 @@ function ApprovalS() {
                     </div>
                 </div>
 
-                {/* Notices Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                    {/* Important Notice */}
                     <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow-sm">
                         <div className="flex items-start">
                             <div className="text-yellow-600 mr-3">
@@ -266,7 +266,6 @@ function ApprovalS() {
                         </div>
                     </div>
 
-                    {/* Status Info */}
                     <div className="bg-blue-50 border-l-4 border-blue-400 p-6 rounded-lg shadow-sm">
                         <div className="flex items-start">
                             <div className="text-blue-600 mr-3">
@@ -285,7 +284,6 @@ function ApprovalS() {
                     </div>
                 </div>
 
-                {/* Papers Table Section */}
                 {myPapers.length === 0 ? (
                     <div className="bg-white p-12 rounded-lg shadow-md text-center">
                         <div className="text-gray-400 mb-6">
@@ -308,14 +306,13 @@ function ApprovalS() {
                                         <th className="p-4 text-left border-b">Sem</th>
                                         <th className="p-4 text-left border-b">Branch</th>
                                         <th className="p-4 text-left border-b">Type</th>
-                                                                                <th className="p-4 text-left border-b">Status</th>
+                                        <th className="p-4 text-left border-b">Status</th>
                                         <th className="p-4 text-left border-b">PDF</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {myPapers.map((p, i) => {
                                         const status = p.status?.toLowerCase();
-
                                         return (
                                             <tr key={i} className="hover:bg-gray-50 transition">
                                                 <td className="p-4 border-b text-gray-700">
@@ -356,5 +353,3 @@ function ApprovalS() {
         </div>
     );
 }
-
-export default ApprovalS;
