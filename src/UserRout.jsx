@@ -1,16 +1,13 @@
-// src/ProtectedRoute.jsx
+// src/UserRoute.jsx
 import { Navigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 
-export default function ProtectedRoute({ children }) {
+export default function UserRoute({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const location = useLocation();
-
-  // Only this email is allowed
-  const ADMIN_EMAIL = "mpqp073@gmail.com";
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -20,7 +17,7 @@ export default function ProtectedRoute({ children }) {
     return () => unsubscribe();
   }, []);
 
-  // Loading view
+  // Loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen text-xl font-semibold">
@@ -29,7 +26,7 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Not logged in → send to signup
+  // User not logged in → redirect to signup
   if (!user) {
     return (
       <Navigate
@@ -40,16 +37,6 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  // Logged in but NOT admin → send home
-  if (user.email !== ADMIN_EMAIL) {
-    return (
-      <Navigate
-        to="/"
-        replace
-      />
-    );
-  }
-
-  // User is admin → allow
+  // User logged in → allow
   return children;
 }

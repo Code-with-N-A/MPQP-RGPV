@@ -13,6 +13,8 @@ import Dashboard from "./DataFolowD";
 import ControlD from "./DataControl";
 import Report from "./Report";
 import { ApiProvider } from "./ContextAPI";
+import ApprovalS from "./ApruvelS";
+import UserRoute from "./UserRout";
 
 function App() {
   return (
@@ -24,10 +26,30 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
 
-          <Route path="/Paper Upload" element={<PaperForm />} />
-          <Route path="/DataControl" element={<ControlD />} />
-          <Route path="/Dasbord" element={<Dashboard />} />
-          <Route path="/DataReport" element={<Report />} />
+          <Route path="/Paper Upload" element={
+            <UserRoute>
+            <PaperForm />
+            </UserRoute>
+            } />
+          <Route path="/User Status" element={
+            <UserRoute>
+            <ApprovalS />
+            </UserRoute>
+            } />
+
+
+          <Route path="/DataControl" element={
+            <ProtectedRoute>
+              <ControlD />
+            </ProtectedRoute>} />
+          <Route path="/Dasbord" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>} />
+          <Route path="/DataReport" element={
+            <ProtectedRoute>
+              <Report />
+              </ProtectedRoute>} />
 
           <Route
             path="/@-nitesh-748933*2"

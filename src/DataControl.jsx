@@ -27,6 +27,7 @@ export default function ControlD() {
     { label: "Type", value: "type" },
     { label: "Year", value: "year" },
     { label: "Semester", value: "semester" },
+    { label: "Email", value: "email" }, // Added Email to search options
   ];
 
   const loadData = async () => {
@@ -200,6 +201,7 @@ export default function ControlD() {
             <th className="p-3 border-b text-left">Paper Code</th>
             <th className="p-3 border-b text-left">Subject</th>
             <th className="p-3 border-b text-left">Type</th>
+            <th className="p-3 border-b text-left">Email</th> {/* Added Email column header */}
             <th className="p-3 border-b text-left">PDF</th>
             <th className="p-3 border-b text-left">Actions</th>
           </tr>
@@ -216,6 +218,57 @@ export default function ControlD() {
               <td className="p-2">{highlightText(String(row.paperCode))}</td>
               <td className="p-2">{highlightText(String(row.subjectName))}</td>
               <td className="p-2">{highlightText(String(row.type))}</td>
+              <td className="p-2">
+                {row.email ? (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevent page reload
+                      const mailtoLink = `mailto:${row.email}?cc=mpqp073@gmail.com&subject=${encodeURIComponent(
+                        "MPQP Polytechnic - Issue Found in Your Uploaded Data"
+                      )}&body=${encodeURIComponent(
+                        `Dear User,
+
+Greetings from MPQP Polytechnic.
+
+During the verification of the data or PDF uploaded by you, certain issues have been identified.
+
+UPLOAD DETAILS
+--------------------------------
+ID: ${row.id}
+Uploaded On: ${new Date(row.timestamp).toLocaleString()}
+Year / Semester: ${row.year} / ${row.semester}
+Branch: ${row.branch}
+Paper Code: ${row.paperCode}
+Subject: ${row.subjectName}
+Type: ${row.type}
+PDF Link: ${row.pdfUrl || "Not Available"}
+
+IDENTIFIED ISSUE
+--------------------------------
+[PLEASE WRITE THE ISSUE HERE]
+
+IMPORTANT
+Please correct the above issue and re-upload the PDF with accurate information.
+If the correction is not completed within 24 hours, the upload may be automatically rejected by the system.
+
+Regards,
+MPQP Polytechnic
+Verification Team
+Email: mpqp073@gmail.com
+Website: https://mpqp.vercel.app/
+`
+                      )}`;
+                      window.location.href = mailtoLink;
+                    }}
+                    className="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition inline-block"
+                  >
+                    Email
+                  </button>
+                ) : (
+                  <span className="text-gray-400">N/A</span>
+                )}
+              </td>
+
               <td className="p-2">
                 {row.pdfUrl ? (
                   <a

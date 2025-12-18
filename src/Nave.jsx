@@ -12,7 +12,7 @@ function Nave() {
   const [searchText, setSearchText] = useState("");
   const [user, setUser] = useState(null);
 
-  const menuItems = ["Home", "Paper Upload"];
+  const menuItems = ["Home", "Paper Upload","User Status"];
 
   const toggleSearch = () => {
     setShowSearch(!showSearch);
