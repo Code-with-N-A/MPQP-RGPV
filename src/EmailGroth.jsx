@@ -62,14 +62,23 @@ export default function EmailHrth() {
             latestTimestamp: row.timestamp,
           };
         }
+
         userMap[email].count += 1;
-        if (new Date(row.timestamp) < new Date(userMap[email].latestTimestamp)) {
+
+        // Update to the LATEST activity for this user
+        if (new Date(row.timestamp) > new Date(userMap[email].latestTimestamp)) {
           userMap[email].latestTimestamp = row.timestamp;
         }
       });
 
+      // --- CRITICAL SORTING LOGIC UPDATE ---
       const sorted = Object.values(userMap).sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
+        // 1. First sort by count (Highest first)
+        if (b.count !== a.count) {
+          return b.count - a.count;
+        }
+        // 2. If counts are equal, the one who uploaded EARLIER (older date) wins
+        // Example: 12:50 PM (older) will come before 12:51 PM (newer)
         return new Date(a.latestTimestamp) - new Date(b.latestTimestamp);
       });
 
@@ -172,9 +181,9 @@ export default function EmailHrth() {
             {/* Rank 1 Premium Spotlight */}
             {topUser && (
               <div className="relative group transition-all duration-500 mb-8 sm:mb-16">
-                <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-600 rounded-[2rem] sm:rounded-[2.5rem] blur opacity-15"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-600  blur opacity-15"></div>
 
-                <div className="relative overflow-hidden bg-white border border-white shadow-xl p-6 sm:p-14">
+                <div className="relative overflow-hidden bg-white border border-white shadow-xl p-6 sm:p-14 ">
                   <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none opacity-40" />
 
                   {/* Premium Ribbon */}
@@ -211,20 +220,23 @@ export default function EmailHrth() {
                         {topUser.displayName}
                         <CheckCircle2 className="text-blue-500 w-6 h-6 sm:w-8 sm:h-8" fill="rgba(59, 130, 246, 0.1)" />
                       </h2>
-                     <p className="text-slate-500 text-sm sm:text-base md:text-lg font-medium max-w-md leading-relaxed mb-6 sm:mb-8">
-  Top contributor on this platform for uploading the 
-  <span className="text-amber-600 font-black"> highest number of question papers ({topUser.count})</span>.
-</p>
-
+                      <p className="text-slate-500 text-sm sm:text-base md:text-lg font-medium max-w-md leading-relaxed mb-6 sm:mb-8">
+                        Top contributor with
+                        <span className="text-amber-600 font-black"> {topUser.count} papers</span>. Rank based on count & fastest contribution.
+                      </p>
 
                       <div className="flex flex-wrap gap-3 sm:gap-4 justify-center md:justify-start">
-                        <div className="bg-slate-50 px-4 py-3 sm:px-6 sm:py-4  border border-slate-100">
-                          <p className="text-[8px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Impact Since</p>
-                          <p className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5"><Clock size={14} className="text-amber-500" /> {formatDate(topUser.latestTimestamp)}</p>
+                        <div className="bg-slate-50 px-4 py-3 sm:px-6 sm:py-4 border border-slate-100 rounded-xl">
+                          <p className="text-[8px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Last Upload</p>
+                          <p className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <Clock size={14} className="text-amber-500" /> {formatDate(topUser.latestTimestamp)}
+                          </p>
                         </div>
-                        <div className="bg-slate-50 px-4 py-3 sm:px-6 sm:py-4  border border-slate-100">
+                        <div className="bg-slate-50 px-4 py-3 sm:px-6 sm:py-4 border border-slate-100 rounded-xl">
                           <p className="text-[8px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Total Papers</p>
-                          <p className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5"><FileText size={14} className="text-amber-500" /> ({topUser.count})</p>
+                          <p className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                            <FileText size={14} className="text-amber-500" /> {topUser.count}
+                          </p>
                         </div>
                         <div className="bg-slate-50 px-4 py-3 sm:px-6 sm:py-4  border border-slate-100">
                           <p className="text-[8px] sm:text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">Badge</p>
@@ -238,7 +250,7 @@ export default function EmailHrth() {
             )}
 
             {/* Ranking Table Section */}
-            <div className="bg-white shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white shadow-sm border border-slate-200 overflow-hidden ">
               <div className="px-5 py-5 sm:px-8 sm:py-8 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
                 <div className="flex items-center gap-2.5 sm:gap-3">
                   <div className="p-2 sm:p-2.5 bg-white rounded-lg sm:rounded-xl shadow-sm border border-slate-100 text-indigo-600">
@@ -246,18 +258,15 @@ export default function EmailHrth() {
                   </div>
                   <h3 className="text-base sm:text-xl font-black text-slate-800 tracking-tight">Top 10 Rankings</h3>
                 </div>
-                <div className="hidden sm:block text-[10px] font-black text-slate-400 uppercase tracking-widest bg-white px-4 py-2 rounded-full border border-slate-100">
-                  Verified Data
-                </div>
               </div>
 
               <div className="divide-y divide-slate-50">
                 {data.map((user, index) => (
                   <div key={user.email} className="group p-4 sm:p-6 md:p-8 hover:bg-slate-50/80 transition-all flex items-center gap-3 sm:gap-8 relative overflow-hidden">
-                    {/* Rank Number */}
+                    {/* Rank */}
                     <div className={`shrink-0 w-8 h-8 sm:w-12 sm:h-12 flex items-center justify-center rounded-lg sm:rounded-2xl font-black text-sm sm:text-lg shadow-sm ${index === 0 ? "bg-amber-100 text-amber-600" :
-                        index === 1 ? "bg-slate-100 text-slate-500" :
-                          index === 2 ? "bg-orange-50 text-orange-700" : "bg-white border border-slate-100 text-slate-400"
+                      index === 1 ? "bg-slate-100 text-slate-500" :
+                        index === 2 ? "bg-orange-50 text-orange-700" : "bg-white border border-slate-100 text-slate-400"
                       }`}>
                       {index + 1}
                     </div>
@@ -272,21 +281,19 @@ export default function EmailHrth() {
                           onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${user.displayName}` }}
                         />
                       </div>
-                      {index < 3 && (
-                        <div className="absolute -bottom-1 -right-1 bg-white p-0.5 sm:p-1 rounded shadow-md border border-slate-100">
-                          <Medal size={10} className={index === 0 ? "text-amber-500" : index === 1 ? "text-slate-400" : "text-orange-600"} />
-                        </div>
-                      )}
                     </div>
 
-                    {/* Name and Progress */}
+                    {/* Info and Progress Bar */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1 sm:mb-2">
-                        <h4 className="font-bold text-slate-800 truncate text-sm sm:text-lg tracking-tight group-hover:text-indigo-600 transition-colors">{user.displayName}</h4>
-                        {index === 0 && <ShieldCheck size={14} className="text-indigo-500 shrink-0" />}
-                        <p className="text-xs sm:text-sm font-bold text-slate-700 flex items-center gap-1.5"><Clock size={14} className="text-amber-500" /> {formatDate(topUser.latestTimestamp)}</p>
-
+                      <div className="flex items-center justify-between mb-1 sm:mb-2">
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-bold text-slate-800 truncate text-sm sm:text-lg tracking-tight group-hover:text-indigo-600 transition-colors">{user.displayName}</h4>
+                        </div>
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-400 flex items-center gap-1">
+                          <Clock size={12} className="text-slate-300" /> {formatDate(user.latestTimestamp)}
+                        </p>
                       </div>
+
                       <div className="flex items-center gap-2 sm:gap-4">
                         <div className="flex-1 h-1.5 sm:h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-50 shadow-inner">
                           <div
@@ -299,27 +306,9 @@ export default function EmailHrth() {
                         </span>
                       </div>
                     </div>
-
-                    {/* Badge for Desktop */}
-                    {index < 3 && (
-                      <div className={`hidden lg:block px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border ${index === 0 ? "bg-amber-50 text-amber-600 border-amber-100" :
-                          index === 1 ? "bg-slate-50 text-slate-500 border-slate-200" :
-                            "bg-orange-50 text-orange-700 border-orange-100"
-                        }`}>
-                        {index === 0 ? "Champion" : index === 1 ? "Elite" : "Pro"}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Motivation Footer */}
-            <div className="mt-8 sm:mt-12 text-center px-4">
-              <p className="text-slate-400 text-[10px] sm:text-sm font-medium flex items-center justify-center gap-2 leading-tight">
-                <Zap size={14} className="text-amber-500 shrink-0" fill="currentColor" />
-                Want to see your name here? Keep contributing quality materials!
-              </p>
             </div>
           </>
         )}
