@@ -3,6 +3,7 @@ import { useApiData } from "./ContextAPI";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import { useNavigate } from "react-router-dom";
+import EmailHrth from "./EmailGroth";
 
 export default function Home() {
   const { API_URL } = useApiData();
@@ -154,7 +155,7 @@ export default function Home() {
           className="flex gap-4 overflow-x-auto overflow-y-hidden scrollbar-hide
              fixed top-[55px] left-0 w-full 
              bg-white
-             px-4 py-2"
+             px-4 py-2 z-10"
         >
           <div className="flex gap-4 overflow-x-auto scrollbar-hide">
             <select
@@ -287,6 +288,7 @@ export default function Home() {
           </div>
         )}
       </div>
+      <EmailHrth/>
     </div>
   );
 }

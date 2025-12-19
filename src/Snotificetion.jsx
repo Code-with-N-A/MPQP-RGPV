@@ -113,7 +113,7 @@ export default function SignupNotification() {
     <>
       {/* Signup Modal */}
       {showCard && !user && (
-        <div className="fixed inset-0 flex items-center justify-center z-10 bg-transparent backdrop-blur-md p-4 pt-20" role="dialog" aria-modal="true" aria-labelledby="signup-title">
+        <div className="fixed inset-0 flex items-center justify-center z-20 bg-transparent backdrop-blur-md p-4 pt-20" role="dialog" aria-modal="true" aria-labelledby="signup-title">
           <div className="bg-white shadow-2xl max-w-md w-full overflow-hidden animate-fadeInScaleUp relative border border-gray-200">
             <button
               onClick={handleClose}
@@ -207,7 +207,7 @@ export default function SignupNotification() {
 
       {/* Welcome Celebration Modal */}
       {showWelcome && user && (
-        <div className="fixed inset-0 flex items-center justify-center z-10 bg-transparent backdrop-blur-md p-4 pt-20" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
+        <div className="fixed inset-0 flex items-center justify-center z-20 bg-transparent backdrop-blur-md p-4 pt-20" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
           <div className="bg-white shadow-2xl max-w-md w-full overflow-hidden animate-celebration relative border border-gray-200">
             <button
               onClick={handleWelcomeClose}
