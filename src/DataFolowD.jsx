@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Bar, Pie, Doughnut } from "react-chartjs-2";
+import { Bar, Pie, Doughnut, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -11,473 +11,295 @@ import {
   ArcElement,
   PointElement,
   LineElement,
+  Filler,
 } from "chart.js";
 import { useApiData } from "./ContextAPI";
+import { FiRefreshCw, FiPieChart, FiBarChart2, FiLayers, FiDatabase, FiTrendingUp, FiArrowUpRight, FiUsers } from "react-icons/fi";
 
-// Register Chart.js components
 ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-  PointElement,
-  LineElement
+  CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement, PointElement, LineElement, Filler
 );
 
-// Constants
-
-const CHART_COLORS = {
-  year: "rgba(59, 130, 246, 0.8)",
-  semester: "rgba(239, 68, 68, 0.8)",
-  branch: [
-    "rgba(255, 206, 86, 0.8)",
-    "rgba(54, 162, 235, 0.8)",
-    "rgba(255, 99, 132, 0.8)",
-    "rgba(75, 192, 192, 0.8)",
-    "rgba(153, 102, 255, 0.8)",
-    "rgba(255, 159, 64, 0.8)",
-    "rgba(199, 199, 199, 0.8)",
-    "rgba(83, 102, 255, 0.8)",
-    "rgba(255, 99, 71, 0.8)", // Additional colors for more branches
-    "rgba(34, 197, 94, 0.8)",
-    "rgba(168, 85, 247, 0.8)",
-    "rgba(251, 191, 36, 0.8)",
+// --- ENTERPRISE COLOR CONFIG ---
+const THEME = {
+  gradients: [
+    "#6366F1", "#8B5CF6", "#EC4899", "#F43F5E", "#F59E0B", "#10B981", "#06B6D4", "#3B82F6"
   ],
-  type: [
-    "rgba(153, 102, 255, 0.8)",
-    "rgba(255, 159, 64, 0.8)",
-  ],
-  subject: [
-    "rgba(255, 99, 132, 0.8)",
-    "rgba(54, 162, 235, 0.8)",
-    "rgba(255, 206, 86, 0.8)",
-    "rgba(75, 192, 192, 0.8)",
-    "rgba(153, 102, 255, 0.8)",
-    "rgba(255, 159, 64, 0.8)",
-    "rgba(199, 199, 199, 0.8)",
-    "rgba(83, 102, 255, 0.8)",
-    "rgba(255, 99, 71, 0.8)", // Additional colors for more subjects
-    "rgba(34, 197, 94, 0.8)",
-    "rgba(168, 85, 247, 0.8)",
-    "rgba(251, 191, 36, 0.8)",
-    "rgba(239, 68, 68, 0.8)",
-    "rgba(59, 130, 246, 0.8)",
-    "rgba(16, 185, 129, 0.8)",
-    "rgba(245, 158, 11, 0.8)",
-    "rgba(139, 69, 19, 0.8)",
-    "rgba(107, 114, 128, 0.8)",
-    "rgba(236, 72, 153, 0.8)",
-    "rgba(6, 182, 212, 0.8)",
-  ],
+  surface: "#ffffff",
+  background: "#f8fafc",
+  text: "#1e293b"
 };
 
-const DEFAULT_CHART_OPTIONS = {
+const getOptions = (isLine = false) => ({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: "top",
-      labels: {
-        font: {
-          size: 14,
-          family: 'Inter, sans-serif',
-        },
-      },
-    },
-    title: {
       display: true,
-      text: "Data Visualization",
-      font: {
-        size: 18,
-        weight: 'bold',
-        family: 'Inter, sans-serif',
-      },
+      position: "bottom",
+      labels: { usePointStyle: true, font: { family: 'Inter', size: 12, weight: '600' }, padding: 20 }
     },
     tooltip: {
-      backgroundColor: 'rgba(0,0,0,0.8)',
-      titleColor: '#fff',
-      bodyColor: '#fff',
-      cornerRadius: 8,
+      backgroundColor: '#0f172a',
+      padding: 14,
+      borderRadius: 12,
+      titleFont: { size: 14, weight: 'bold' },
+      bodyFont: { size: 13 },
+      displayColors: true,
     },
   },
-  scales: {
-    x: {
-      ticks: {
-        font: {
-          size: 12,
-          family: 'Inter, sans-serif',
-        },
-        maxRotation: 45,
-        minRotation: 45,
-      },
+  scales: isLine ? {
+    x: { grid: { display: false }, ticks: { font: { weight: '600' }, color: '#94a3b8' } },
+    y: { 
+      border: { display: false }, 
+      grid: { color: 'rgba(226, 232, 240, 0.5)', drawBorder: false },
+      ticks: { color: '#94a3b8' } 
     },
-    y: {
-      ticks: {
-        font: {
-          size: 12,
-          family: 'Inter, sans-serif',
-        },
-      },
-    },
-  },
-};
-
-// Utility function to process data
-const processData = (data) => {
-  const yearCounts = {};
-  const semCounts = {};
-  const branchCounts = {};
-  const typeCounts = {};
-  const subjectCounts = {};
-  const yearBranchCounts = {};
-
-  data.forEach((row) => {
-    const year = row.year;
-    const sem = row.semester;
-    const branch = row.branch;
-    const type = row.type;
-    const subject = row.subjectName;
-
-    yearCounts[year] = (yearCounts[year] || 0) + 1;
-    semCounts[sem] = (semCounts[sem] || 0) + 1;
-    branchCounts[branch] = (branchCounts[branch] || 0) + 1;
-    typeCounts[type] = (typeCounts[type] || 0) + 1;
-    subjectCounts[subject] = (subjectCounts[subject] || 0) + 1;
-
-    if (!yearBranchCounts[year]) yearBranchCounts[year] = {};
-    yearBranchCounts[year][branch] = (yearBranchCounts[year][branch] || 0) + 1;
-  });
-
-  const sortedSubjects = Object.entries(subjectCounts).sort((a, b) => a[0].localeCompare(b[0]));
-  const uniqueYears = Object.keys(yearBranchCounts).sort();
-  const uniqueBranches = Array.from(new Set(data.map(row => row.branch))).sort();
-
-  return {
-    yearCounts,
-    semCounts,
-    branchCounts,
-    typeCounts,
-    sortedSubjects,
-    yearBranchCounts,
-    uniqueYears,
-    uniqueBranches,
-  };
-};
-
-// Chart data generators
-const createBarChartData = (labels, data, label, color) => {
-  const isArray = Array.isArray(color);
-  const bgColor = isArray ? color.slice(0, labels.length) : color;
-  const borderColor = isArray ? color.slice(0, labels.length).map(c => c.replace('0.8', '1')) : color.replace('0.8', '1');
-  return {
-    labels,
-    datasets: [
-      {
-        label,
-        data,
-        backgroundColor: bgColor,
-        borderColor: borderColor,
-        borderWidth: 2,
-        borderRadius: 4,
-        borderSkipped: false,
-      },
-    ],
-  };
-};
-
-const createPieChartData = (labels, data, label, colors) => ({
-  labels,
-  datasets: [
-    {
-      label,
-      data,
-      backgroundColor: colors.slice(0, labels.length),
-      borderColor: colors.slice(0, labels.length).map(color => color.replace('0.8', '1')),
-      borderWidth: 2,
-    },
-  ],
-});
-
-const createGroupedBarChartData = (labels, datasets) => ({
-  labels,
-  datasets,
+  } : {},
 });
 
 export default function Dashboard() {
   const { API_URL } = useApiData();
-
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
   const loadData = async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch(`${API_URL}?action=list`);
-      if (!res.ok) throw new Error('Failed to fetch data');
       const json = await res.json();
       if (json.status === "success") {
-        const fetchedData = json.rows || [];
-        setData(fetchedData);
-        sessionStorage.setItem('dashboardData', JSON.stringify(fetchedData));
-        window.dashboardDataLoaded = true;
-      } else {
-        throw new Error('API returned error status');
+        setData(json.rows || []);
+        sessionStorage.setItem('dashboardData', JSON.stringify(json.rows));
       }
     } catch (err) {
       console.error(err);
-      setError(err.message);
+    } finally {
+      setTimeout(() => setLoading(false), 800); // Premium feel delay
     }
-    setLoading(false);
   };
 
   useEffect(() => {
-    if (window.dashboardDataLoaded) {
-      const storedData = sessionStorage.getItem('dashboardData');
-      if (storedData) {
-        setData(JSON.parse(storedData));
-      }
-      setLoading(false);
-    } else {
-      loadData();
-    }
+    const stored = sessionStorage.getItem('dashboardData');
+    if (stored) { setData(JSON.parse(stored)); setLoading(false); }
+    else { loadData(); }
   }, []);
 
-  const processedData = useMemo(() => processData(data), [data]);
+  const stats = useMemo(() => {
+    const counts = { 
+      year: {}, 
+      sem: {}, 
+      branch: {}, 
+      type: { regular: 0, ex: 0 }, // New: Regular vs Ex Logic
+      status: { enabled: 0, disabled: 0 } 
+    };
+    
+    data.forEach(row => {
+      if (row.year) counts.year[row.year] = (counts.year[row.year] || 0) + 1;
+      if (row.semester) counts.sem[row.semester] = (counts.sem[row.semester] || 0) + 1;
+      if (row.branch) counts.branch[row.branch] = (counts.branch[row.branch] || 0) + 1;
+      
+      // Logical check for Regular and Ex
+      const typeStr = (row.type || "").toLowerCase();
+      if (typeStr.includes("regular")) counts.type.regular++;
+      else if (typeStr.includes("ex")) counts.type.ex++;
+      
+      if (row.status?.toLowerCase() === "enabled") counts.status.enabled++;
+      else counts.status.disabled++;
+    });
+    return counts;
+  }, [data]);
 
-  const {
-    yearCounts,
-    semCounts,
-    branchCounts,
-    typeCounts,
-    sortedSubjects,
-    yearBranchCounts,
-    uniqueYears,
-    uniqueBranches,
-  } = processedData;
-
-  const yearChartData = useMemo(() =>
-    createBarChartData(Object.keys(yearCounts), Object.values(yearCounts), "Papers by Year", CHART_COLORS.year),
-    [yearCounts]
-  );
-
-  const semChartData = useMemo(() =>
-    createBarChartData(Object.keys(semCounts), Object.values(semCounts), "Papers by Semester", CHART_COLORS.semester),
-    [semCounts]
-  );
-
-  const branchChartData = useMemo(() =>
-    createPieChartData(Object.keys(branchCounts), Object.values(branchCounts), "Papers by Branch", CHART_COLORS.branch),
-    [branchCounts]
-  );
-
-  const typeChartData = useMemo(() =>
-    createPieChartData(Object.keys(typeCounts), Object.values(typeCounts), "Papers by Type", CHART_COLORS.type),
-    [typeCounts]
-  );
-
-  const subjectChartData = useMemo(() =>
-    createBarChartData(
-      sortedSubjects.map(([subject]) => subject),
-      sortedSubjects.map(([, count]) => count),
-      "All Subjects (Sorted Alphabetically)",
-      CHART_COLORS.subject
-    ),
-    [sortedSubjects]
-  );
-
-  const yearBranchChartData = useMemo(() =>
-    createGroupedBarChartData(
-      uniqueYears,
-      uniqueBranches.map((branch, index) => ({
-        label: branch,
-        data: uniqueYears.map(year => yearBranchCounts[year][branch] || 0),
-        backgroundColor: CHART_COLORS.branch[index % CHART_COLORS.branch.length],
-        borderColor: CHART_COLORS.branch[index % CHART_COLORS.branch.length].replace('0.8', '1'),
-        borderWidth: 2,
-        borderRadius: 4,
-        borderSkipped: false,
-      }))
-    ),
-    [uniqueYears, uniqueBranches, yearBranchCounts]
-  );
-
-  const subjectChartOptions = {
-    ...DEFAULT_CHART_OPTIONS,
-    plugins: {
-      ...DEFAULT_CHART_OPTIONS.plugins,
-      title: {
-        display: true,
-        text: "All Subjects (Sorted Alphabetically)",
-        font: {
-          size: 18,
-          weight: 'bold',
-          family: 'Inter, sans-serif',
-        },
-      },
-    },
-    scales: {
-      x: {
-        ticks: {
-          font: {
-            size: 10,
-            family: 'Inter, sans-serif',
-          },
-          maxRotation: 90,
-          minRotation: 90,
-        },
-      },
-      y: {
-        ticks: {
-          font: {
-            size: 12,
-            family: 'Inter, sans-serif',
-          },
-        },
-      },
-    },
-  };
-
-  const yearBranchChartOptions = {
-    ...DEFAULT_CHART_OPTIONS,
-    plugins: {
-      ...DEFAULT_CHART_OPTIONS.plugins,
-      title: {
-        display: true,
-        text: "Papers by Year and Branch",
-        font: {
-          size: 18,
-          weight: 'bold',
-          family: 'Inter, sans-serif',
-        },
-      },
-    },
-  };
-
-  const handleRefresh = () => {
-    window.dashboardDataLoaded = false;
-    sessionStorage.removeItem('dashboardData');
-    loadData();
-  };
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6 mt-8 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600 mb-4">Error Loading Data</h1>
-          <p className="text-gray-600">{error}</p>
-          <button
-            onClick={handleRefresh}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200"
-          >
-            Retry
-          </button>
+  const StatCard = ({ title, value, icon: Icon, color, trend }) => (
+    <div className="bg-white p-7 rounded-[2.5rem] shadow-[0_10px_40px_-15px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col justify-between hover:translate-y-[-8px] transition-all duration-300 group">
+      <div className="flex justify-between items-start mb-4">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color} text-white shadow-lg group-hover:rotate-6 transition-transform`}>
+          <Icon size={28} />
+        </div>
+        <div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+          <FiTrendingUp /> {trend}
         </div>
       </div>
-    );
-  }
+      <div>
+        <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.15em] mb-1">{title}</p>
+        <h3 className="text-4xl font-black text-slate-800 tracking-tight">{value}</h3>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-6 mt-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-2">Paper Analytics Dashboard</h1>
-          <p className="text-lg text-gray-600">Comprehensive insights into academic papers and new requests</p>
-          <button
-            onClick={handleRefresh}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition duration-200 shadow-lg"
-            aria-label="Refresh dashboard data"
+    <div className="min-h-screen bg-[#F8FAFC] p-6 md:p-12 font-['Inter',sans-serif]">
+      <div className="max-w-[1440px] mx-auto">
+        
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-12 gap-8">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="h-1 w-12 bg-indigo-600 rounded-full"></span>
+              <span className="text-indigo-600 font-bold text-xs uppercase tracking-widest">System Overview</span>
+            </div>
+            <h1 className="text-5xl font-[1000] text-slate-900 tracking-tighter">
+              Performance <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">Pulse</span>
+            </h1>
+          </div>
+          <button 
+            onClick={loadData}
+            className="group flex items-center gap-3 bg-slate-900 text-white px-8 py-4 rounded-3xl font-bold hover:bg-indigo-600 transition-all shadow-2xl shadow-indigo-100 active:scale-95"
           >
-            Refresh Data
+            <FiRefreshCw className={loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-700"} />
+            Sync Real-time Data
           </button>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" aria-label="Loading data"></div>
+          <div className="flex flex-col h-96 items-center justify-center gap-4">
+            <div className="w-16 h-16 border-[6px] border-slate-100 border-t-indigo-600 rounded-full animate-spin"></div>
+            <p className="text-slate-400 font-bold animate-pulse uppercase text-[10px] tracking-[0.3em]">Architecting View...</p>
           </div>
         ) : (
-          <>
-            {/* Summary Section - Combined Total, Enabled, Disabled */}
-            <div className="bg-white p-4 md:p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300 mb-8">
-              <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 text-center">Paper Summary</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-700">Total Papers</h3>
-                  <p className="text-3xl md:text-4xl font-extrabold text-blue-600">{data.length}</p>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-700">Enabled Papers</h3>
-                  <p className="text-3xl md:text-4xl font-extrabold text-green-600">
-                    {data.filter((row) => row.status?.toLowerCase() === "enabled").length}
-                  </p>
-                </div>
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-gray-700">Disabled Papers</h3>
-                  <p className="text-3xl md:text-4xl font-extrabold text-red-600">
-                    {data.filter((row) => row.status?.toLowerCase() === "disabled").length}
-                  </p>
-                </div>
-              </div>
+          <div className="space-y-8">
+            
+            {/* STATS GRID */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+              <StatCard title="Total Repository" value={data.length} icon={FiDatabase} color="bg-indigo-600" trend="+12.5%" />
+              <StatCard title="Active Nodes" value={stats.status.enabled} icon={FiArrowUpRight} color="bg-emerald-500" trend="+4.2%" />
+              <StatCard title="Regular Mode" value={stats.type.regular} icon={FiUsers} color="bg-cyan-500" trend="Active" />
+              <StatCard title="Ex-Student Mode" value={stats.type.ex} icon={FiLayers} color="bg-rose-500" trend="Historic" />
             </div>
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-              {/* Year Bar Chart */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 text-center">Papers by Year</h2>
-                <div className="h-64 md:h-80">
-                  <Bar data={yearChartData} options={DEFAULT_CHART_OPTIONS} />
+            {/* CHARTS GRID - FIRST ROW */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              <div className="lg:col-span-2 bg-white p-10 rounded-[3rem] shadow-sm border border-slate-50 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-10 opacity-5">
+                  <FiBarChart2 size={150} />
+                </div>
+                <h3 className="text-xl font-black text-slate-800 mb-10 flex items-center gap-3">
+                  <span className="w-2 h-6 bg-indigo-600 rounded-full"></span> Data Inflow Over Time
+                </h3>
+                <div className="h-[400px]">
+                  <Line 
+                    options={getOptions(true)}
+                    data={{
+                      labels: Object.keys(stats.year),
+                      datasets: [{
+                        label: 'Paper Volume',
+                        data: Object.values(stats.year),
+                        borderColor: '#6366F1',
+                        borderWidth: 4,
+                        backgroundColor: (context) => {
+                          const ctx = context.chart.ctx;
+                          const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                          gradient.addColorStop(0, 'rgba(99, 102, 241, 0.2)');
+                          gradient.addColorStop(1, 'rgba(99, 102, 241, 0)');
+                          return gradient;
+                        },
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 6,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: '#ffffff',
+                        pointBorderColor: '#6366F1',
+                        pointBorderWidth: 3
+                      }]
+                    }}
+                  />
                 </div>
               </div>
 
-              {/* Semester Bar Chart */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 text-center">Papers by Semester</h2>
-                <div className="h-64 md:h-80">
-                  <Bar data={semChartData} options={DEFAULT_CHART_OPTIONS} />
+              <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-50">
+                <h3 className="text-xl font-black text-slate-800 mb-10 flex items-center gap-3">
+                  <span className="w-2 h-6 bg-rose-500 rounded-full"></span> Ecosystem Share
+                </h3>
+                <div className="h-[350px]">
+                  <Doughnut 
+                    options={{...getOptions(), cutout: '82%'}}
+                    data={{
+                      labels: Object.keys(stats.branch),
+                      datasets: [{
+                        data: Object.values(stats.branch),
+                        backgroundColor: THEME.gradients,
+                        hoverOffset: 30,
+                        borderWidth: 0,
+                      }]
+                    }}
+                  />
                 </div>
               </div>
 
-              {/* Branch Pie Chart */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 text-center">Papers by Branch</h2>
-                <div className="h-64 md:h-80 flex justify-center">
-                  <Pie data={branchChartData} options={DEFAULT_CHART_OPTIONS} />
-                </div>
-              </div>
-
-              {/* Type Doughnut Chart */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 text-center">Papers by Type</h2>
-                <div className="h-64 md:h-80 flex justify-center">
-                  <Doughnut data={typeChartData} options={DEFAULT_CHART_OPTIONS} />
-                </div>
-              </div>
-
-              {/* Papers by Year and Branch (Grouped Bar Chart) */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300 sm:col-span-2 lg:col-span-2">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 text-center">Papers by Year and Branch (New Requests)</h2>
-                <div className="h-64 md:h-80 overflow-x-auto">
-                  <Bar data={yearBranchChartData} options={yearBranchChartOptions} />
-                </div>
-              </div>
-
-              {/* All Subjects Vertical Bar Chart - Full Width */}
-              <div className="bg-white p-4 md:p-6 rounded-xl shadow-xl hover:shadow-2xl transition-shadow duration-300 sm:col-span-2 lg:col-span-3">
-                <h2 className="text-xl md:text-2xl font-bold mb-4 text-gray-800 text-center">All Subjects (Sorted Alphabetically)</h2>
-                                <div className="h-96 md:h-[500px] overflow-x-auto">
-                  <Bar data={subjectChartData} options={subjectChartOptions} />
-                </div>
-              </div>
             </div>
-          </>
+
+            {/* CHARTS GRID - SECOND ROW (REGULAR vs EX PIE ADDED) */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              {/* NEW CHART: REGULAR VS EX PIE */}
+              <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
+                <h3 className="text-xl font-black text-slate-800 mb-8 flex items-center gap-3">
+                  <span className="w-2 h-6 bg-cyan-500 rounded-full"></span> Regular vs Ex (Mode)
+                </h3>
+                <div className="h-[300px] flex items-center justify-center">
+                  <Pie 
+                    options={getOptions()}
+                    data={{
+                      labels: ['Regular Students', 'Ex-Students'],
+                      datasets: [{
+                        data: [stats.type.regular, stats.type.ex],
+                        backgroundColor: ['#06B6D4', '#F43F5E'],
+                        borderWidth: 5,
+                        borderColor: '#ffffff',
+                        hoverOffset: 20
+                      }]
+                    }}
+                  />
+                </div>
+                <p className="text-center text-slate-400 text-xs mt-4 font-semibold italic">Based on Semester & Branch scan data</p>
+              </div>
+
+              <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-50 lg:col-span-1">
+                <h3 className="text-xl font-black text-slate-800 mb-8 tracking-tight uppercase text-xs">Semester Distribution</h3>
+                <div className="h-[300px]">
+                  <Bar 
+                    options={{...getOptions(true), indexAxis: 'y'}}
+                    data={{
+                      labels: Object.keys(stats.sem).map(s => `Sem ${s}`),
+                      datasets: [{
+                        label: 'Paper Count',
+                        data: Object.values(stats.sem),
+                        backgroundColor: THEME.gradients,
+                        borderRadius: 12,
+                        barThickness: 20,
+                      }]
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="bg-slate-900 p-10 rounded-[3rem] text-white shadow-2xl relative overflow-hidden group lg:col-span-1">
+                <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-indigo-600/10 rounded-full group-hover:scale-150 transition-transform duration-700"></div>
+                <h3 className="text-xl font-black mb-8 relative z-10">Sync Status Overview</h3>
+                <div className="h-[300px] flex justify-center relative z-10">
+                  <Pie 
+                    data={{
+                      labels: ['Active Assets', 'Pending Sync'],
+                      datasets: [{
+                        data: [stats.status.enabled, stats.status.disabled],
+                        backgroundColor: ['#10B981', 'rgba(255,255,255,0.1)'],
+                        borderColor: '#0f172a',
+                        borderWidth: 8
+                      }]
+                    }}
+                  />
+                </div>
+              </div>
+
+            </div>
+          </div>
         )}
       </div>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+      `}</style>
     </div>
   );
 }

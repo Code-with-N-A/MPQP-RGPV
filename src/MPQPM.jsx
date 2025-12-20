@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaBook, FaChartBar, FaFileDownload } from "react-icons/fa";
+import { FaBook, FaChartBar, FaFileDownload, FaArrowRight, FaGraduationCap } from "react-icons/fa";
+import { HiOutlineLightBulb } from "react-icons/hi";
 
 const API_URL = "https://script.google.com/macros/s/AKfycbyQGbi08nenrNPoHNmV3D6PUd0MkXH3X57qi0Yr75lxySDYpaBDLHHUvWPUcNGKhrLd/exec";
 
-// Bell Icon SVG Component
-const BellIcon = ({ className }) => (
-  <svg
-    className={className}
-    fill="currentColor"
-    viewBox="0 0 20 20"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
-  </svg>
+// Modern Notification Badge Component
+const NotificationBadge = ({ count }) => (
+  <div className="absolute -top-3 -right-3 flex items-center justify-center z-30">
+    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+    <div className="relative bg-gradient-to-r from-red-500 to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-lg border-2 border-white">
+      {count > 99 ? "99+" : count} NEW
+    </div>
+  </div>
 );
 
 const MPQPPaperM = () => {
@@ -23,13 +22,11 @@ const MPQPPaperM = () => {
 
   useEffect(() => {
     const fetchNewRequestsCount = async () => {
-      setLoading(true);
       try {
         const res = await fetch(`${API_URL}?action=list`);
         const json = await res.json();
         if (json.status === "success") {
           const fetchedData = json.rows || [];
-          // Count disabled status items (new requests)
           const disabledCount = fetchedData.filter(item => item.status?.toLowerCase() === "disabled").length;
           setNewRequestsCount(disabledCount);
         }
@@ -39,130 +36,175 @@ const MPQPPaperM = () => {
         setLoading(false);
       }
     };
-
     fetchNewRequestsCount();
   }, []);
 
+  // Optimized Navigation Handler
+  const handleVaultAccess = (e) => {
+    e.preventDefault();
+    navigate("/DataControl");
+  };
+
   return (
-    <div className="font-sans bg-gray-50 min-h-screen">
+    <div className="font-[Poppins] bg-[#f8fafc] min-h-screen overflow-x-hidden text-slate-900">
+      
       {/* ================= HERO SECTION ================= */}
-      <section className="bg-gradient-to-r from-blue-800 to-blue-600 text-white min-h-screen flex flex-col justify-center items-center text-center px-4 sm:px-6 md:px-12 lg:px-20 xl:px-24 relative overflow-hidden">
-        {/* Subtle background pattern for professionalism */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KPGcgZmlsbD0iI2ZmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj4KPHBhdGggZD0iTTM2IDM0djEwaC0ydjEwSDI0VjM0SDF2LTJoMnYtMTBoNFYxNGgxMFYyNFoiLz4KPC9nPgo8L2c+Cjwvc3ZnPg==')] bg-repeat"></div>
-        </div>
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-4 leading-tight tracking-tight">
-            MPQP RGPV Question Papers
+      <section className="relative min-h-[90vh] flex items-center justify-center pt-20 pb-12 px-6 overflow-hidden bg-[#0f172a]">
+        
+        {/* Animated Background Blobs - z-index set to 0 to prevent blocking clicks */}
+        <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob z-0"></div>
+        <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000 z-0"></div>
+        <div className="absolute -bottom-8 left-20 w-72 h-72 bg-pink-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000 z-0"></div>
+
+        <div className="relative z-10 max-w-6xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 text-blue-400 px-4 py-1.5 rounded-full text-xs font-bold mb-6 tracking-widest uppercase">
+            <HiOutlineLightBulb className="text-lg" /> Official RGPV Polytechnic Hub
+          </div>
+          
+          <h1 className="text-5xl md:text-8xl font-black text-white mb-6 leading-[1.1] tracking-tighter">
+            Smart Way to <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500">
+              Master Exams
+            </span>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl max-w-3xl mb-8 leading-relaxed mx-auto">
-            Access all RGPV Polytechnic Question Papers easily. Browse, analyze,
-            and download previous years’ question papers through a clean and
-            government-style portal.
+          
+          <p className="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+            Elevate your preparation with MPQP. Access a curated vault of RGPV 
+            Polytechnic papers with advanced subject-wise analytics.
           </p>
-          <div className="mt-6">
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-20">
             <button
-              onClick={() => navigate("/DataControl")}
-              className="bg-white text-blue-800 font-semibold py-3 px-6 sm:px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 text-sm sm:text-base"
+              onClick={handleVaultAccess}
+              className="group bg-blue-600 hover:bg-blue-500 text-white px-10 py-4 rounded-2xl font-bold shadow-2xl shadow-blue-500/20 transition-all flex items-center gap-3 active:scale-95 pointer-events-auto"
             >
-              Get Started
+              Access Vault <FaArrowRight className="group-hover:translate-x-1 transition-transform" />
+            </button>
+            <button 
+               onClick={() => window.scrollTo({top: 800, behavior: 'smooth'})}
+               className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-10 py-4 rounded-2xl font-bold backdrop-blur-md transition-all active:scale-95"
+            >
+              Learn More
             </button>
           </div>
         </div>
       </section>
 
-      {/* ================= CARDS SECTION ================= */}
-      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-12 lg:px-20 xl:px-24 bg-white">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12 text-gray-800">
-          Explore Portal
-        </h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
-          {/* -------- All Question Papers -------- */}
-          <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-2 flex flex-col items-center text-center relative border border-gray-200">
-            {newRequestsCount > 0 && (
-              <div
-                className="absolute top-3 sm:top-4 right-3 sm:right-4 bg-red-600 text-white text-xs sm:text-sm font-bold rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center shadow-md animate-pulse cursor-pointer group"
-                title={`${newRequestsCount} New Request${newRequestsCount > 1 ? 's' : ''}`}
-              >
-                <BellIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-0.5 sm:mr-1" />
-                <span className="hidden sm:inline">{newRequestsCount}</span>
-                <span className="sm:hidden">{newRequestsCount > 9 ? '9+' : newRequestsCount}</span>
-                {/* Tooltip for mobile/small screens */}
-                <div className="absolute top-full mt-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
-                  {newRequestsCount} New Request{newRequestsCount > 1 ? 's' : ''}
-                </div>
+      {/* ================= BENTO GRID SECTION ================= */}
+      <section className="py-24 px-6 max-w-7xl mx-auto -mt-20 relative z-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Main Card (Paper Access) */}
+          <div className="md:col-span-2 group relative bg-white rounded-[2rem] p-8 md:p-12 shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden flex flex-col justify-between">
+            <div className="absolute top-0 right-0 p-12 opacity-5 group-hover:opacity-10 transition-opacity">
+               <FaBook size={180} />
+            </div>
+            
+            <div className="relative">
+              {newRequestsCount > 0 && <NotificationBadge count={newRequestsCount} />}
+              <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-8">
+                <FaBook size={24} />
               </div>
-            )}
-            <FaBook className="text-blue-700 text-4xl sm:text-5xl mb-4 sm:mb-5" />
-            <h3 className="font-semibold text-xl sm:text-2xl mb-3 text-gray-800">
-              All Question Papers
-            </h3>
-            <p className="text-gray-600 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
-              Browse and access all previous year RGPV question papers.
-            </p>
+              <h3 className="text-3xl font-bold mb-4">Central Repository</h3>
+              <p className="text-slate-500 max-w-sm mb-8">
+                Browse through 1000+ previous year papers categorized by semester, branch, and subject.
+              </p>
+            </div>
+
             <button
-              onClick={() => {
-                navigate("/DataControl");
-              }}
-              className="bg-blue-700 hover:bg-blue-800 text-white font-semibold py-2 px-6 sm:px-8 rounded-full shadow-md transition-all duration-300 hover:scale-105 text-sm sm:text-base"
+              onClick={handleVaultAccess}
+              className="w-fit bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors z-10 active:scale-95"
             >
-              View Papers
+              Explore Papers
             </button>
           </div>
 
-          {/* -------- Subject-wise Analysis -------- */}
-          <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-2 flex flex-col items-center text-center border border-gray-200">
-            <FaChartBar className="text-green-600 text-4xl sm:text-5xl mb-4 sm:mb-5" />
-            <h3 className="font-semibold text-xl sm:text-2xl mb-3 text-gray-800">
-              Subject-wise Analysis
-            </h3>
-            <p className="text-gray-600 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
-              Analyze trends and patterns of RGPV question papers.
-            </p>
-            <button
-              onClick={() => {
-                navigate("/Dasbord");
-              }}
-              className="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 sm:px-8 rounded-full shadow-md transition-all duration-300 hover:scale-105 text-sm sm:text-base"
-            >
-              View Analysis
-            </button>
-          </div>
+          {/* Side Bento Stack */}
+          <div className="flex flex-col gap-6">
+            <div className="group bg-gradient-to-br from-emerald-500 to-teal-600 rounded-[2rem] p-8 text-white shadow-xl shadow-emerald-200 flex flex-col justify-between hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => navigate("/Dasbord")}>
+               <div className="flex justify-between items-start">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <FaChartBar size={20} />
+                  </div>
+                  <FaArrowRight className="-rotate-45 opacity-50" />
+               </div>
+               <div>
+                  <h3 className="text-xl font-bold mt-12 mb-2">Trend Analysis</h3>
+                  <p className="text-emerald-50 text-sm opacity-80">Subject-wise pattern insights.</p>
+                  <button className="mt-4 text-xs font-black uppercase tracking-widest border-b-2 border-white/30 pb-1">View Stats</button>
+               </div>
+            </div>
 
-          {/* -------- Download Reports -------- */}
-          <div className="bg-gray-50 p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-2 flex flex-col items-center text-center border border-gray-200">
-            <FaFileDownload className="text-purple-600 text-4xl sm:text-5xl mb-4 sm:mb-5" />
-            <h3 className="font-semibold text-xl sm:text-2xl mb-3 text-gray-800">
-              Download Reports
-            </h3>
-            <p className="text-gray-600 mb-4 sm:mb-6 leading-relaxed text-sm sm:text-base">
-              Download consolidated reports of RGPV question papers.
-            </p>
-            <button
-              onClick={() => {
-                navigate("/DataReport");
-              }}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-6 sm:px-8 rounded-full shadow-md transition-all duration-300 hover:scale-105 text-sm sm:text-base"
-            >
-              Download
-            </button>
+            <div className="group bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl shadow-slate-200/50 flex flex-col justify-between hover:scale-[1.02] transition-transform cursor-pointer" onClick={() => navigate("/DataReport")}>
+               <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center">
+                  <FaFileDownload size={20} />
+               </div>
+               <div>
+                  <h3 className="text-xl font-bold mt-10 mb-2">Bulk Reports</h3>
+                  <p className="text-slate-500 text-sm">Download consolidated data.</p>
+                  <button className="mt-4 text-xs font-black uppercase tracking-widest text-purple-600">Start Download</button>
+               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= STATS SECTION ================= */}
+      <section className="py-20 bg-slate-900 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-500 via-transparent to-transparent"></div>
+        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-12 text-center relative z-10">
+          <div>
+            <div className="text-4xl md:text-5xl font-black mb-2 text-blue-400">10k+</div>
+            <div className="text-slate-400 text-sm font-bold uppercase tracking-tighter">Active Students</div>
+          </div>
+          <div>
+            <div className="text-4xl md:text-5xl font-black mb-2 text-purple-400">50+</div>
+            <div className="text-slate-400 text-sm font-bold uppercase tracking-tighter">Total Subjects</div>
+          </div>
+          <div>
+            <div className="text-4xl md:text-5xl font-black mb-2 text-emerald-400">100%</div>
+            <div className="text-slate-400 text-sm font-bold uppercase tracking-tighter">Accuracy</div>
+          </div>
+          <div>
+            <div className="text-4xl md:text-5xl font-black mb-2 text-orange-400">24/7</div>
+            <div className="text-slate-400 text-sm font-bold uppercase tracking-tighter">Online Access</div>
           </div>
         </div>
       </section>
 
       {/* ================= ABOUT SECTION ================= */}
-      <section className="py-12 sm:py-16 md:py-20 px-4 sm:px-6 md:px-12 lg:px-20 xl:px-24 text-center bg-gray-100">
-        <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 sm:mb-6 text-gray-800">
-          About MPQP RGPV Portal
-        </h2>
-        <p className="text-gray-700 max-w-4xl mx-auto text-base sm:text-lg md:text-xl leading-relaxed">
-          MPQP RGPV Question Paper Portal is a dedicated platform for students and
-          faculty to access previous year RGPV Polytechnic question papers.
-          The portal follows a clean, official, and government-style design,
-          ensuring accessibility on mobile phones, tablets, and desktops.
-        </p>
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto bg-white rounded-[3rem] p-10 md:p-20 shadow-2xl shadow-slate-200 border border-slate-100 flex flex-col md:flex-row items-center gap-12">
+          <div className="md:w-1/3">
+             <div className="w-32 h-32 bg-blue-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-blue-500/40 rotate-12">
+                <FaGraduationCap size={60} className="text-white -rotate-12" />
+             </div>
+          </div>
+          <div className="md:w-2/3">
+            <h2 className="text-4xl font-black mb-6 tracking-tight text-slate-800">
+              Beyond Just Papers. <br />
+              <span className="text-blue-600">A Smart Ecosystem.</span>
+            </h2>
+            <p className="text-slate-500 text-lg leading-relaxed mb-8">
+              MPQP isn't just a download portal. It's an intelligent platform designed 
+              to give RGPV Polytechnic students a competitive edge. Our government-standard 
+              security and clean UI ensure you focus on what matters most: **Your Results.**
+            </p>
+          </div>
+        </div>
       </section>
+
+      <style>{`
+        @keyframes blob {
+          0% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
+          100% { transform: translate(0px, 0px) scale(1); }
+        }
+        .animate-blob { animation: blob 7s infinite; }
+        .animation-delay-2000 { animation-delay: 2s; }
+        .animation-delay-4000 { animation-delay: 4s; }
+      `}</style>
     </div>
   );
 };

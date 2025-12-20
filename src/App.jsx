@@ -15,6 +15,7 @@ import Report from "./Report";
 import { ApiProvider } from "./ContextAPI";
 import ApprovalS from "./ApruvelS";
 import UserRoute from "./UserRout";
+import EmailHrth from "./EmailGroth";
 
 function App() {
   return (
@@ -26,12 +27,12 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
 
-          <Route path="/Paper Upload" element={
+          <Route path="//paper-upload" element={
             <UserRoute>
             <PaperForm />
             </UserRoute>
             } />
-          <Route path="/User Status" element={
+          <Route path="/user-status" element={
             <UserRoute>
             <ApprovalS />
             </UserRoute>
@@ -60,6 +61,7 @@ function App() {
             }
           />
 
+          <Route path="/Top-10-user" element={<EmailHrth/>} />
           <Route path="/signup" element={<Auth />} />
           <Route path="/user-account" element={<LandingPage />} />
           <Route path="*" element={<Home />} />

@@ -1,16 +1,20 @@
-import { useState, useEffect } from "react";
-import {
-  signInWithPopup,
-  onAuthStateChanged,
-  deleteUser,
-} from "firebase/auth";
+import React, { useState, useEffect } from "react";
+import { signInWithPopup, onAuthStateChanged, deleteUser } from "firebase/auth";
 import { auth, googleProvider, githubProvider, twitterProvider } from "./firebase";
 import { useNavigate, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Loader2, 
+  Github, 
+  Twitter, 
+  AlertCircle, 
+  CheckCircle2, 
+  ShieldCheck 
+} from "lucide-react";
 
 export default function Auth() {
   const [msg, setMsg] = useState({ text: "", type: "" });
-  const [loading, setLoading] = useState(false);
-  const [loadingProvider, setLoadingProvider] = useState(null); // Track which provider is loading
+  const [loadingProvider, setLoadingProvider] = useState(null);
   const [showMsg, setShowMsg] = useState(false);
   const [progress, setProgress] = useState(0);
   const [blinkGoogle, setBlinkGoogle] = useState(false);
@@ -21,195 +25,161 @@ export default function Auth() {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        navigate(from, { replace: true });
-      }
+      if (user) navigate(from, { replace: true });
     });
     return () => unsubscribe();
   }, [navigate, from]);
 
-  const startProgress = () => {
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setShowMsg(false);
-          return 100;
-        }
-        return prev + 1;
-      });
-    }, 25);
-  };
+  // Progress Bar Logic
+  useEffect(() => {
+    let interval;
+    if (showMsg) {
+      setProgress(0);
+      interval = setInterval(() => {
+        setProgress((prev) => {
+          if (prev >= 100) {
+            clearInterval(interval);
+            setTimeout(() => setShowMsg(false), 500);
+            return 100;
+          }
+          return prev + 2;
+        });
+      }, 40);
+    }
+    return () => clearInterval(interval);
+  }, [showMsg]);
 
   const showNotification = (text, type) => {
     setMsg({ text, type });
     setShowMsg(true);
-    startProgress();
   };
 
   const handleAuth = async (provider, name) => {
-    if (loading) return;
-    setLoading(true);
-    setLoadingProvider(name); // Set which provider is loading
-    setBlinkGoogle(false); // Reset blink on new attempt
+    if (loadingProvider) return;
+    setLoadingProvider(name);
+    setBlinkGoogle(false);
+
     try {
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      if (!user.email) {
-        showNotification("Unable to retrieve your email. Please try again.", "error");
-        try {
-          await deleteUser(user);
-        } catch {}
+      if (!result.user.email) {
+        showNotification("Email access is required to continue.", "error");
+        await deleteUser(result.user);
         return;
       }
-
-      showNotification("Login successful! Redirecting...", "success");
-      setTimeout(() => navigate(from, { replace: true }), 1500);
+      showNotification("Authenticated successfully! Redirecting...", "success");
+      setTimeout(() => navigate(from, { replace: true }), 2000);
     } catch (error) {
-      // User-friendly error messages instead of raw errors
-      let friendlyMessage = "Login failed. Please check your connection and try again.";
-      if (error.code === "auth/popup-closed-by-user") {
-        friendlyMessage = "Login cancelled. Please try again.";
-      } else if (error.code === "auth/network-request-failed") {
-        friendlyMessage = "Network error. Please check your internet and try again.";
-      } else if (error.code === "auth/account-exists-with-different-credential") {
-        friendlyMessage = "This account is linked to another provider. Please sign in with Google to continue.";
-        setBlinkGoogle(true); // Trigger Google button blink
-        setTimeout(() => setBlinkGoogle(false), 5000); // Stop blinking after 5 seconds
+      let friendlyMessage = "Authentication failed. Please try again.";
+      if (error.code === "auth/popup-closed-by-user") friendlyMessage = "Login cancelled.";
+      else if (error.code === "auth/account-exists-with-different-credential") {
+        friendlyMessage = "Account exists! Please use Google to sign in.";
+        setBlinkGoogle(true);
       }
       showNotification(friendlyMessage, "error");
-      console.error(error);
     } finally {
-      setLoading(false);
-      setLoadingProvider(null); // Reset loading provider
+      setLoadingProvider(null);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-4 py-20 relative">
-      {/* Clean Professional Background - Plain White */}
-      <div className="absolute inset-0 bg-white"></div>
-
-      {/* Auth Card - Professional Look */}
-      <div className="relative w-full max-w-lg bg-white p-10 shadow-xl border border-gray-300 ">
-        {/* Header with Professional SVG Logo */}
-        <div className="text-center mb-10">
-          {/* Custom SVG Logo for MPQP */}
-          <div className="flex justify-center mb-6">
-            <svg
-              width="90"
-              height="90"
-              viewBox="0 0 80 80"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="drop-shadow-md"
-            >
-              {/* Outer Circle with Gradient */}
-              <circle cx="40" cy="40" r="38" fill="url(#logoGradient)" stroke="#4F46E5" strokeWidth="2"/>
-              {/* Inner Design - Stylized MPQP */}
-              <text x="40" y="45" textAnchor="middle" fill="white" fontSize="18" fontWeight="bold" fontFamily="Arial, sans-serif">
-                MPQP
-              </text>
-              {/* Subtle Inner Circle */}
-              <circle cx="40" cy="40" r="25" fill="none" stroke="white" strokeWidth="1" opacity="0.5"/>
-              <defs>
-                <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: '#4F46E5', stopOpacity: 1 }} />
-                  <stop offset="100%" style={{ stopColor: '#7C3AED', stopOpacity: 1 }} />
-                </linearGradient>
-              </defs>
-            </svg>
+    <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center p-6 relative overflow-hidden">
+      {/* Decorative background elements */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+      
+      {/* Auth Card */}
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="w-full max-w-[440px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-10 z-10"
+      >
+        {/* Logo Section */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200 mb-6 rotate-3 hover:rotate-0 transition-transform duration-300">
+             <ShieldCheck className="text-white w-10 h-10" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Welcome to MPQP</h1>
-          <p className="text-gray-600 text-lg font-medium">Sign in with your preferred platform</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight">MPQP Portal</h1>
+          <p className="text-gray-500 mt-2 text-center font-medium">Secure access to academic resources</p>
         </div>
 
-        {/* Buttons Layout: Google Full Width, GitHub and Twitter in One Row */}
-        <div className="space-y-6">
-          {/* Google Button - Full Width */}
+        {/* Auth Buttons */}
+        <div className="space-y-4">
           <button
             onClick={() => handleAuth(googleProvider, "Google")}
-            disabled={loading}
-            className={`cursor-pointer flex items-center justify-center gap-2 py-4 px-6 bg-white text-gray-700 rounded-lg font-semibold hover:bg-gray-50 hover:shadow-lg transition-all duration-300 w-full border border-gray-300 ${blinkGoogle ? 'animate-pulse' : ''} ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={!!loadingProvider}
+            className={`w-full flex items-center justify-center gap-3 py-3.5 px-6 bg-white border-2 border-gray-100 rounded-2xl font-bold text-gray-700 hover:border-indigo-100 hover:bg-indigo-50/30 transition-all duration-200 group relative overflow-hidden ${blinkGoogle ? 'ring-4 ring-indigo-500 ring-opacity-50 animate-bounce' : ''}`}
           >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-6 h-6" />
-            Continue with Google
-            {loadingProvider === "Google" && (
-              <div className="w-3 h-3 border-2 border-gray-700 border-t-transparent rounded-full animate-spin"></div>
+            {loadingProvider === "Google" ? (
+              <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+            ) : (
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5 group-hover:scale-110 transition-transform" alt="Google" />
             )}
+            <span>{loadingProvider === "Google" ? "Connecting..." : "Continue with Google"}</span>
           </button>
 
-          {/* GitHub and Twitter in One Row */}
           <div className="flex gap-4">
             <button
               onClick={() => handleAuth(githubProvider, "GitHub")}
-              disabled={loading}
-              className={`cursor-pointer flex items-center justify-center gap-2 py-4 px-5 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 hover:shadow-lg transition-all duration-300 flex-1 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!!loadingProvider}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all shadow-lg shadow-gray-200 disabled:opacity-50"
             >
-              <img src="https://github.githubassets.com/images/modules/site/icons/footer/github-mark.svg" className="w-5 h-5" />
+              {loadingProvider === "GitHub" ? <Loader2 className="w-5 h-5 animate-spin" /> : <Github size={20} />}
               GitHub
-              {loadingProvider === "GitHub" && (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              )}
             </button>
 
             <button
               onClick={() => handleAuth(twitterProvider, "Twitter")}
-              disabled={loading}
-              className={`cursor-pointer flex items-center justify-center gap-2 py-4 px-5 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 hover:shadow-lg transition-all duration-300 flex-1 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              disabled={!!loadingProvider}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-[#1DA1F2] text-white rounded-2xl font-bold hover:bg-[#1a91da] transition-all shadow-lg shadow-blue-100 disabled:opacity-50"
             >
-              {/* Custom Grey Twitter SVG with Small Background */}
-              <div className="w-5 h-5 bg-gray-300 rounded-full flex items-center justify-center">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-3 h-3 text-gray-700"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                </svg>
-              </div>
+              {loadingProvider === "Twitter" ? <Loader2 className="w-5 h-5 animate-spin" /> : <Twitter size={20} />}
               Twitter
-              {loadingProvider === "Twitter" && (
-                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              )}
             </button>
           </div>
         </div>
 
-        {/* Optional Footer for Extra Professionalism */}
-        <div className="text-center mt-8">
-          <p className="text-sm text-gray-500">By signing in, you agree to our Terms of Service and Privacy Policy.</p>
+        {/* Footer */}
+        <div className="mt-10 pt-6 border-t border-gray-50 text-center">
+          <p className="text-xs text-gray-400 leading-relaxed uppercase tracking-widest font-bold">
+            Trusted by 5000+ Students
+          </p>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Enhanced Notification Popup */}
-      {showMsg && (
-        <div className="fixed top-4 inset-x-0 flex justify-center z-50 px-2">
-          <div className="w-full sm:w-96 max-w-lg p-4 bg-white rounded-lg shadow-2xl border border-gray-200 overflow-hidden">
-            <div className="flex items-center gap-3">
-              {/* Appropriate SVG Icon based on message type */}
-              {msg.type === "success" ? (
-                <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-              ) : (
-                <svg className="w-6 h-6 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                </svg>
-              )}
-              <span className={`text-xs font-medium leading-tight ${msg.type === "success" ? "text-green-800" : "text-red-800"}`}>
-                {msg.text}
-              </span>
+      {/* Modern Toast Notification */}
+      <AnimatePresence>
+        {showMsg && (
+          <motion.div 
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed top-6 z-[100] w-full max-w-sm"
+          >
+            <div className={`mx-4 bg-white rounded-2xl shadow-2xl border-l-4 p-4 overflow-hidden ${msg.type === "success" ? "border-green-500" : "border-red-500"}`}>
+              <div className="flex items-start gap-3">
+                {msg.type === "success" ? (
+                  <CheckCircle2 className="w-6 h-6 text-green-500 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-6 h-6 text-red-500 shrink-0" />
+                )}
+                <div className="flex-1">
+                  <h4 className={`font-bold text-sm ${msg.type === "success" ? "text-green-800" : "text-red-800"}`}>
+                    {msg.type === "success" ? "Success" : "Action Required"}
+                  </h4>
+                  <p className="text-gray-600 text-xs mt-0.5 font-medium leading-normal">{msg.text}</p>
+                </div>
+              </div>
+              {/* Animated Progress Bar */}
+              <div className="absolute bottom-0 left-0 h-1 bg-gray-100 w-full">
+                <motion.div 
+                  className={`h-full ${msg.type === "success" ? "bg-green-500" : "bg-red-500"}`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
-            <div className="h-1 bg-gray-200 w-full rounded-full mt-3 overflow-hidden">
-              <div className={`h-full transition-all duration-100 ${msg.type === "success" ? "bg-green-500" : "bg-red-500"}`} style={{ width: `${progress}%` }}></div>
-            </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
