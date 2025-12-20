@@ -103,6 +103,13 @@ export default function SearchBar() {
     inputRef.current?.blur(); 
   };
 
+  const clearSearch = (e) => {
+    e.stopPropagation();
+    setSearchText("");
+    setSuggestions([]);
+    inputRef.current?.focus();
+  };
+
   return (
     <div ref={searchRef} className="search-container relative w-full max-w-2xl mx-auto z-[999]">
       
@@ -122,8 +129,17 @@ export default function SearchBar() {
             className="bg-transparent border-none outline-none text-sm font-medium w-full placeholder-gray-400 cursor-text"
           />
         </div>
-        <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 text-[10px] font-bold text-gray-500">
-          <Command size={10} /> K
+        <div className="flex items-center gap-2">
+          {searchText && (
+            <X 
+              onClick={clearSearch} 
+              size={18} 
+              className="text-gray-400 hover:text-orange-500 transition-colors cursor-pointer" 
+            />
+          )}
+          <div className="flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-zinc-800 rounded-lg border border-gray-200 dark:border-zinc-700 text-[10px] font-bold text-gray-500">
+            <Command size={10} /> K
+          </div>
         </div>
       </div>
 
@@ -140,7 +156,7 @@ export default function SearchBar() {
           className="flex-1 bg-transparent py-3 px-3 outline-none text-gray-800 dark:text-zinc-100"
         />
         {searchText && (
-          <X onClick={() => { setSearchText(""); setIsOpen(false); inputRef.current?.blur(); }} size={18} className="mr-3 text-gray-400 cursor-pointer" />
+          <X onClick={clearSearch} size={18} className="mr-3 text-gray-400 cursor-pointer" />
         )}
       </div>
 

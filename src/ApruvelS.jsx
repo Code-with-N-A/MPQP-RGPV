@@ -1,18 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { auth } from "./firebase";
 import { useApiData } from "./ContextAPI";
 import { motion, AnimatePresence } from "framer-motion"; 
 import { 
     FiLock, FiAlertTriangle, FiInfo, FiFileText, 
-    FiRefreshCw, FiExternalLink, FiUser, FiCalendar, FiBookOpen
+    FiRefreshCw, FiExternalLink, FiUser, FiCalendar, FiBookOpen, FiCheckCircle, FiClock
 } from "react-icons/fi";
 
-const REFRESH_INTERVAL = 3000;
+const REFRESH_INTERVAL = 5000; // Updated to 5s for better performance
 
-// --- STEP-BY-STEP STATUS COMPONENT ---
 const StatusTimeline = ({ status }) => {
     const isApproved = status === "approved" || status === "enabled";
-    
     const steps = [
         { label: "Received", active: true, color: "bg-emerald-500" },
         { label: "Review", active: true, color: isApproved ? "bg-emerald-500" : "bg-amber-500 animate-pulse" },
@@ -23,9 +21,9 @@ const StatusTimeline = ({ status }) => {
         <div className="flex items-center gap-1">
             {steps.map((step, idx) => (
                 <React.Fragment key={idx}>
-                    <div className={`w-2.5 h-2.5 rounded-full ${step.color} shadow-sm`} title={step.label} />
+                    <div className={`w-2.5 h-2.5 rounded-full ${step.color} shadow-sm transition-colors duration-500`} title={step.label} />
                     {idx < steps.length - 1 && (
-                        <div className={`w-4 h-[2px] ${step.active && (idx === 0 || isApproved) ? "bg-emerald-500" : "bg-slate-200"}`} />
+                        <div className={`w-4 h-[2px] transition-colors duration-500 ${step.active && (idx === 0 || isApproved) ? "bg-emerald-500" : "bg-slate-200"}`} />
                     )}
                 </React.Fragment>
             ))}
@@ -35,21 +33,19 @@ const StatusTimeline = ({ status }) => {
 
 export default function ApprovalS() {
     const { API_URL } = useApiData();
-    // Initialize state from sessionStorage to avoid flickering on page return
     const [myPapers, setMyPapers] = useState(() => {
         const cached = sessionStorage.getItem("my_submissions");
         return cached ? JSON.parse(cached) : [];
     });
     const [loading, setLoading] = useState(!sessionStorage.getItem("my_submissions"));
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [error, setError] = useState("");
     const [lastUpdated, setLastUpdated] = useState(null);
 
     const user = auth.currentUser;
     const userEmail = user?.email?.toLowerCase() || "";
 
-    const loadData = async (manual = false) => {
-        if (!userEmail) return;
+    const loadData = useCallback(async (manual = false) => {
+        if (!userEmail || !API_URL) return;
         if (manual) setIsRefreshing(true);
 
         try {
@@ -57,38 +53,41 @@ export default function ApprovalS() {
             const json = await res.json();
 
             if (json.status === "success") {
-                const filtered = json.rows.filter(
-                    (row) => row.email?.toLowerCase() === userEmail && row.status?.toLowerCase() !== "rejected"
-                );
-                const sortedData = filtered.reverse(); // Newest first
-                setMyPapers(sortedData);
-                sessionStorage.setItem("my_submissions", JSON.stringify(sortedData));
+                const filtered = json.rows
+                    .filter(row => row.email?.toLowerCase() === userEmail && row.status?.toLowerCase() !== "rejected")
+                    .reverse();
+                
+                setMyPapers(filtered);
+                sessionStorage.setItem("my_submissions", JSON.stringify(filtered));
                 setLastUpdated(new Date());
-                setError("");
             }
         } catch (err) {
-            console.error("Fetch error:", err);
-            // Don't show error if we already have cached data
-            if (myPapers.length === 0) setError("Sync failed. Checking connection...");
+            console.error("Sync Error:", err);
         } finally {
             setLoading(false);
             setIsRefreshing(false);
         }
-    };
+    }, [userEmail, API_URL]);
 
     useEffect(() => {
-        if (!userEmail) return;
         loadData();
         const interval = setInterval(() => loadData(false), REFRESH_INTERVAL);
         return () => clearInterval(interval);
-    }, [userEmail]);
+    }, [loadData]);
+
+    // Stats calculation
+    const stats = {
+        total: myPapers.length,
+        live: myPapers.filter(p => p.status?.toLowerCase() === 'enabled' || p.status?.toLowerCase() === 'approved').length,
+        pending: myPapers.filter(p => p.status?.toLowerCase() !== 'enabled' && p.status?.toLowerCase() !== 'approved').length
+    };
 
     if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-6">
-                <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-sm">
-                    <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                        <FiLock size={32} />
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-sm">
+                    <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
+                        <FiLock size={40} />
                     </div>
                     <h2 className="text-2xl font-black text-slate-800 mb-2">Private Access</h2>
                     <p className="text-slate-500 mb-6">Please sign in to track your document submissions.</p>
@@ -98,135 +97,138 @@ export default function ApprovalS() {
     }
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] pb-20 pt-10 font-[Poppins]">
+        <div className="min-h-screen bg-[#f8fafc] pb-20 pt-10 font-[Poppins] selection:bg-indigo-100">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 
-                {/* HEADER SECTION */}
+                {/* HEADER */}
                 <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                    <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Submission Tracker</h1>
-                        <p className="text-slate-500 flex items-center gap-2 mt-1">
+                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Track Submissions</h1>
+                        <p className="text-slate-500 flex items-center gap-2 mt-2 font-medium">
                             <FiUser className="text-indigo-500" />
-                            Active Session: <span className="font-bold text-indigo-600">{userEmail}</span>
+                            User: <span className="text-indigo-600 font-bold">{userEmail}</span>
                         </p>
                     </motion.div>
 
-                    <motion.div initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="flex items-center gap-3 bg-white p-2 rounded-2xl shadow-sm border border-slate-100">
-                        {lastUpdated && (
-                            <div className="hidden sm:flex flex-col items-end px-3">
-                                <span className="text-[9px] uppercase tracking-widest font-black text-slate-400">Last Sync</span>
-                                <span className="text-xs font-bold text-slate-600">{lastUpdated.toLocaleTimeString()}</span>
-                            </div>
-                        )}
+                    <div className="flex items-center gap-4">
+                        <div className="hidden sm:block text-right">
+                            <p className="text-[10px] uppercase tracking-widest font-black text-slate-400">System Status</p>
+                            <p className="text-xs font-bold text-emerald-500 flex items-center justify-end gap-1">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"/> Connected
+                            </p>
+                        </div>
                         <button 
                             onClick={() => loadData(true)}
                             disabled={isRefreshing}
-                            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 disabled:opacity-70"
+                            className="group flex items-center gap-2 px-6 py-3 bg-white text-slate-900 border border-slate-200 rounded-2xl hover:border-indigo-500 hover:text-indigo-600 transition-all shadow-sm disabled:opacity-50"
                         >
-                            <FiRefreshCw className={isRefreshing || loading ? "animate-spin" : ""} />
-                            <span className="font-bold text-sm">{isRefreshing ? "Syncing..." : "Refresh"}</span>
+                            <FiRefreshCw className={`${isRefreshing || loading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
+                            <span className="font-bold text-sm">{isRefreshing ? "Syncing..." : "Refresh Sync"}</span>
                         </button>
-                    </motion.div>
+                    </div>
                 </header>
 
-                {/* INFO CARDS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-                    <motion.div whileHover={{ y: -5 }} className="bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 p-6 rounded-[2rem] shadow-sm">
-                        <div className="flex gap-4">
-                            <div className="p-3 bg-white rounded-2xl text-amber-600 shadow-sm"><FiAlertTriangle size={24}/></div>
-                            <div>
-                                <h3 className="font-bold text-amber-900">Submission Policy</h3>
-                                <p className="text-sm text-amber-800/80 leading-relaxed mt-1">
-                                    Rejected scans are removed in 24h. Please ensure the <b>Branch</b> and <b>Subject Code</b> match the uploaded PDF.
-                                </p>
-                            </div>
+                {/* STATS ROW */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                    {[
+                        { label: 'Total Papers', val: stats.total, icon: <FiFileText/>, col: 'text-blue-600' },
+                        { label: 'Live on Site', val: stats.live, icon: <FiCheckCircle/>, col: 'text-emerald-600' },
+                        { label: 'Processing', val: stats.pending, icon: <FiClock/>, col: 'text-amber-600' },
+                        { label: 'Last Sync', val: lastUpdated ? lastUpdated.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--', icon: <FiRefreshCw/>, col: 'text-slate-600' }
+                    ].map((s, i) => (
+                        <div key={i} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
+                            <div className={`mb-2 ${s.col}`}>{s.icon}</div>
+                            <div className="text-2xl font-black text-slate-800">{s.val}</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</div>
                         </div>
-                    </motion.div>
-
-                    <motion.div whileHover={{ y: -5 }} className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 p-6 rounded-[2rem] shadow-sm">
-                        <div className="flex gap-4">
-                            <div className="p-3 bg-white rounded-2xl text-indigo-600 shadow-sm"><FiInfo size={24}/></div>
-                            <div className="w-full">
-                                <h3 className="font-bold text-indigo-900">Live Status Guide</h3>
-                                <div className="flex justify-between mt-4 text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                                    <span>Cloud</span>
-                                    <span>Verifying</span>
-                                    <span>Public</span>
-                                </div>
-                                <div className="mt-2 h-2 w-full bg-indigo-200/50 rounded-full overflow-hidden flex">
-                                    <div className="w-1/3 h-full bg-indigo-500 border-r border-white/20" />
-                                    <div className="w-1/3 h-full bg-indigo-400 animate-pulse border-r border-white/20" />
-                                    <div className="w-1/3 h-full bg-slate-200" />
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
+                    ))}
                 </div>
 
-                {/* MAIN TABLE */}
+                {/* POLICY & INFO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+                    <div className="bg-amber-50/50 border border-amber-100 p-6 rounded-[2rem] flex gap-4">
+                        <div className="p-3 bg-white rounded-2xl text-amber-600 shadow-sm h-fit"><FiAlertTriangle size={24}/></div>
+                        <div>
+                            <h3 className="font-bold text-amber-900">Important Note</h3>
+                            <p className="text-sm text-amber-800/80 leading-relaxed mt-1">
+                                Scans with incorrect <b>Subject Codes</b> are automatically rejected by the system. Rejected items are cleared every 24 hours.
+                            </p>
+                        </div>
+                    </div>
+                    <div className="bg-indigo-50/50 border border-indigo-100 p-6 rounded-[2rem] flex gap-4">
+                        <div className="p-3 bg-white rounded-2xl text-indigo-600 shadow-sm h-fit"><FiInfo size={24}/></div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-indigo-900">Verification Process</h3>
+                            <div className="mt-4 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden flex">
+                                <div className="w-2/3 h-full bg-indigo-500 animate-pulse" />
+                            </div>
+                            <p className="text-[10px] font-black text-indigo-400 mt-2 uppercase tracking-tighter">Your paper is currently being indexed in our database</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* MAIN CONTENT */}
                 <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
                     {loading && myPapers.length === 0 ? (
-                        <div className="py-24 text-center">
-                            <div className="animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-                            <p className="text-slate-400 font-medium">Fetching your papers...</p>
+                        <div className="py-32 text-center">
+                            <div className="relative w-16 h-16 mx-auto mb-4">
+                                <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                                <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                            <p className="text-slate-400 font-bold animate-pulse">Syncing Submission Cloud...</p>
                         </div>
                     ) : myPapers.length === 0 ? (
-                        <div className="py-24 text-center">
-                            <FiFileText size={50} className="mx-auto text-slate-200 mb-4" />
-                            <h3 className="text-xl font-bold text-slate-400">No submissions found</h3>
-                            <p className="text-slate-300 text-sm mt-1">Your uploaded papers will appear here.</p>
+                        <div className="py-32 text-center px-6">
+                            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <FiFileText size={40} className="text-slate-200" />
+                            </div>
+                            <h3 className="text-2xl font-black text-slate-800">No Submissions Found</h3>
+                            <p className="text-slate-400 max-w-xs mx-auto mt-2">Any paper you upload using this email will appear here automatically.</p>
                         </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
                                 <thead>
-                                    <tr className="bg-slate-50/80">
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100">Document Information</th>
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100">Classification</th>
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100">Live Status</th>
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 text-center">Action</th>
+                                    <tr className="bg-slate-50/50 border-b border-slate-100">
+                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Paper Details</th>
+                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Category</th>
+                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Live Status</th>
+                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">Cloud Link</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    <AnimatePresence>
+                                    <AnimatePresence mode='popLayout'>
                                         {myPapers.map((p, i) => (
                                             <motion.tr 
-                                                key={i}
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ delay: i * 0.05 }}
-                                                className="hover:bg-indigo-50/20 transition-colors group"
+                                                key={p.timestamp + i}
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0 }}
+                                                className="hover:bg-slate-50/80 transition-colors group"
                                             >
                                                 <td className="px-8 py-6">
                                                     <div className="flex flex-col">
-                                                        <span className="font-black text-slate-800 text-base leading-tight group-hover:text-indigo-700 transition-colors">{p.subjectName}</span>
-                                                        <div className="flex items-center gap-3 mt-1.5 text-xs font-bold text-slate-400">
-                                                            <span className="flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase"><FiBookOpen size={10}/> {p.paperCode}</span>
-                                                            <span className="flex items-center gap-1"><FiCalendar size={12}/> {new Date(p.timestamp).toLocaleDateString()}</span>
+                                                        <span className="font-black text-slate-800 text-lg group-hover:text-indigo-600 transition-colors">{p.subjectName}</span>
+                                                        <div className="flex items-center gap-3 mt-1">
+                                                            <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-indigo-100">{p.paperCode}</span>
+                                                            <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+                                                                <FiCalendar size={12}/> {new Date(p.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6">
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {/* --- BRANCH SHOWING HERE --- */}
-                                                        <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black uppercase tracking-wider border border-indigo-100">
-                                                            {p.branch || "N/A"}
-                                                        </span>
-                                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                                                            Sem: {p.semester}
-                                                        </span>
-                                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-black uppercase tracking-wider">
-                                                            {p.year}
-                                                        </span>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider">{p.branch}</span>
+                                                        <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider">Sem {p.semester}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6">
-                                                    <div className="flex flex-col gap-2">
+                                                    <div className="space-y-2">
                                                         <StatusTimeline status={p.status?.toLowerCase()} />
-                                                        <span className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${p.status?.toLowerCase() === 'enabled' || p.status?.toLowerCase() === 'approved' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                            <span className={`w-1.5 h-1.5 rounded-full ${p.status?.toLowerCase() === 'enabled' || p.status?.toLowerCase() === 'approved' ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`} />
-                                                            {p.status || 'Pending'}
-                                                        </span>
+                                                        <div className={`text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 ${p.status?.toLowerCase() === 'enabled' || p.status?.toLowerCase() === 'approved' ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                            {p.status || 'Checking'}
+                                                        </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6 text-center">
@@ -236,13 +238,12 @@ export default function ApprovalS() {
                                                             whileTap={{ scale: 0.95 }}
                                                             href={p.pdfUrl} 
                                                             target="_blank" 
-                                                            rel="noreferrer"
-                                                            className="inline-flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl font-bold text-xs hover:bg-indigo-600 transition-all shadow-md"
+                                                            className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-2xl font-bold text-xs hover:bg-indigo-600 transition-all shadow-lg shadow-slate-200"
                                                         >
-                                                            View <FiExternalLink size={14}/>
+                                                            Open PDF <FiExternalLink size={14}/>
                                                         </motion.a>
                                                     ) : (
-                                                        <span className="text-slate-300 font-black text-[10px] uppercase italic tracking-widest">Processing</span>
+                                                        <span className="text-slate-300 font-black text-[10px] uppercase italic tracking-[0.2em] animate-pulse">Syncing File...</span>
                                                     )}
                                                 </td>
                                             </motion.tr>
@@ -254,12 +255,11 @@ export default function ApprovalS() {
                     )}
                 </div>
 
-                {/* FOOTER INFO */}
-                <p className="mt-8 text-center text-slate-400 text-xs font-medium">
-                    Data updates automatically every {REFRESH_INTERVAL/1000} seconds. 
-                    <br className="sm:hidden" /> Manual refresh forces a cloud sync.
-                </p>
-
+                <footer className="mt-12 text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        <FiRefreshCw className={isRefreshing ? "animate-spin" : ""}/> Auto-Refresh Every 5s
+                    </div>
+                </footer>
             </div>
         </div>
     );

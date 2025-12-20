@@ -90,7 +90,7 @@ export default function Auth() {
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[440px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-10 z-10"
+        className="w-full max-w-[440px] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] border border-gray-100 p-8 md:p-10 z-10"
       >
         {/* Logo Section */}
         <div className="flex flex-col items-center mb-8">
