@@ -74,7 +74,7 @@ function Nave() {
           </defs>
         </svg>
       </div>
-      <div className="hidden sm:flex flex-col border-l border-gray-200 pl-3">
+      <div className="flex-col border-l border-gray-200 pl-3">
         <h1 className="text-xl font-[900] tracking-tighter text-slate-900 leading-none">
           MP<span className="text-blue-600">QP</span>
         </h1>
