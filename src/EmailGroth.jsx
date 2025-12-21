@@ -29,69 +29,74 @@ export default function EmailHrth() {
   ], []);
 
   const loadData = useCallback(async (isManual = false) => {
-    try {
-      if (isManual) setRefreshing(true);
-      else setLoading(true);
+  try {
+    if (isManual) setRefreshing(true);
+    else setLoading(true);
 
-      const res = await fetch(`${API_URL}?action=list`);
-      const json = await res.json();
+    const res = await fetch(`${API_URL}?action=list`);
+    const json = await res.json();
 
-      if (json.status !== "success" || !Array.isArray(json.rows)) {
-        setData([]);
-        return;
+    if (json.status !== "success" || !Array.isArray(json.rows)) {
+      setData([]);
+      return;
+    }
+
+    const userMap = {};
+    const firebaseUserEmail = auth.currentUser?.email?.toLowerCase();
+    
+    // 1. Blocked Email Define Karein
+    const BLOCKED_EMAIL = "mpqp073@gmail.com";
+
+    json.rows.forEach((row) => {
+      if (!row.email || row.status !== "Enabled") return;
+      const email = row.email.toLowerCase();
+
+      // --- CRITICAL: Is Email ka data load hi mat karo ---
+      if (email === BLOCKED_EMAIL) return; 
+
+      if (!userMap[email]) {
+        let name = row.displayName || email.split("@")[0];
+        
+        // --- FORMAL AVATAR LOGIC (Suit-Boot) ---
+        const gender = guessGender(name);
+        const formalImg = `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}&clothing=businessSuit,collarAndSweater&top=${gender === 'female' ? 'longHair,bob' : 'shortHair,frizzle'}&backgroundColor=f1f5f9`;
+
+        let finalImg = firebaseUserEmail === email
+          ? (auth.currentUser?.photoURL || row.photoURL || formalImg)
+          : (row.photoURL || formalImg);
+
+        userMap[email] = {
+          email,
+          displayName: name.charAt(0).toUpperCase() + name.slice(1),
+          photoURL: finalImg,
+          count: 0,
+          latestTimestamp: row.timestamp,
+        };
       }
 
-      const userMap = {};
-      const firebaseUserEmail = auth.currentUser?.email?.toLowerCase();
+      userMap[email].count += 1;
 
-      json.rows.forEach((row) => {
-        if (!row.email || row.status !== "Enabled") return;
-        const email = row.email.toLowerCase();
+      if (new Date(row.timestamp) > new Date(userMap[email].latestTimestamp)) {
+        userMap[email].latestTimestamp = row.timestamp;
+      }
+    });
 
-        if (!userMap[email]) {
-          let name = row.displayName || email.split("@")[0];
-          let finalImg = firebaseUserEmail === email
-            ? (auth.currentUser?.photoURL || row.photoURL)
-            : `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`;
+    const sorted = Object.values(userMap).sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return new Date(a.latestTimestamp) - new Date(b.latestTimestamp);
+    });
 
-          userMap[email] = {
-            email,
-            displayName: name.charAt(0).toUpperCase() + name.slice(1),
-            photoURL: finalImg,
-            count: 0,
-            latestTimestamp: row.timestamp,
-          };
-        }
-
-        userMap[email].count += 1;
-
-        // Update to the LATEST activity for this user
-        if (new Date(row.timestamp) > new Date(userMap[email].latestTimestamp)) {
-          userMap[email].latestTimestamp = row.timestamp;
-        }
-      });
-
-      // --- CRITICAL SORTING LOGIC UPDATE ---
-      const sorted = Object.values(userMap).sort((a, b) => {
-        // 1. First sort by count (Highest first)
-        if (b.count !== a.count) {
-          return b.count - a.count;
-        }
-        // 2. If counts are equal, the one who uploaded EARLIER (older date) wins
-        // Example: 12:50 PM (older) will come before 12:51 PM (newer)
-        return new Date(a.latestTimestamp) - new Date(b.latestTimestamp);
-      });
-
-      const top10 = sorted.slice(0, 10);
-      setData(top10);
-      sessionStorage.setItem('leaderboardData', JSON.stringify(top10));
-    } catch (err) {
-      console.error("Load Error:", err);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [API_URL]);
+    // Ab isme mpqp073 kabhi nahi aayega kyunki humne upar hi 'return' kar diya hai
+    const top10 = sorted.slice(0, 10);
+    setData(top10);
+    sessionStorage.setItem('leaderboardData', JSON.stringify(top10));
+  } catch (err) {
+    console.error("Load Error:", err);
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, [API_URL]);
 
   useEffect(() => {
     const stored = sessionStorage.getItem('leaderboardData');
