@@ -168,7 +168,7 @@ export default function ApprovalS() {
                 </div>
 
                 {/* MAIN CONTENT */}
-                <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
+                <div className="bg-white  shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
                     {loading && myPapers.length === 0 ? (
                         <div className="py-32 text-center">
                             <div className="relative w-16 h-16 mx-auto mb-4">
