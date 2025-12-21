@@ -136,7 +136,8 @@ export default function PaperForm() {
       const base64PDF = await fileToBase64(form.pdfFile);
       const safeSubject = form.subjectName.trim().replace(/\s+/g, "_");
 
-      const customFileName = `${getFullPaperCode()}_${safeSubject}_${form.type}.pdf`;
+      const customFileName = `${form.year}_${getFullPaperCode()}_${safeSubject}_${form.type}.pdf`;
+
 
       const payload = {
         id: genID(),
