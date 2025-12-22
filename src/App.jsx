@@ -25,7 +25,7 @@ function App() {
 
       <ApiProvider>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/Home" element={<Home />} />
 
           <Route path="//paper-upload" element={
             <UserRoute>
@@ -53,7 +53,7 @@ function App() {
               </ProtectedRoute>} />
 
           <Route
-            path="/@-nitesh-748933*2"
+            path="/3EwV67iMsaehQU2W-@nitesh_Amule-@74-89-33eVGkVyzOYJF3"
             element={
               <ProtectedRoute>
                 <MPQPPageM />
