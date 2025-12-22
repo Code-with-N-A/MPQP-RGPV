@@ -283,7 +283,7 @@ export default function Home() {
                     <th className="p-6 text-[11px] font-extrabold text-gray-500 uppercase tracking-widest text-right">Access</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-50">
+                <tbody className="divide-y divide-gray-200">
                   {filteredData.map((row, index) => (
                     <tr
                       key={row.id}
