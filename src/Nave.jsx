@@ -22,7 +22,7 @@ function Nave() {
 
   // 2. Systematic Menu Items
   const menuItems = [
-    { name: "Home", path: "/Home", icon: <FiHome /> },
+    { name: "Home", path: "/", icon: <FiHome /> },
     { name: "Paper Upload", path: "/paper-upload", icon: <FiUploadCloud /> },
     { name: "User Status", path: "/user-status", icon: <FiActivity /> },
     { name: "TOP 10 Users", path: "/Top-10-user", icon: <FiAward /> },

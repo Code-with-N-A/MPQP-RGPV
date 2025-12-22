@@ -25,7 +25,7 @@ function App() {
 
       <ApiProvider>
         <Routes>
-          <Route path="/Home" element={<Home />} />
+          <Route path="/" element={<Home />} />
 
           <Route path="//paper-upload" element={
             <UserRoute>
