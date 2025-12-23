@@ -46,6 +46,15 @@ export default function UserProfile({ user, onLogout }) {
     return () => document.removeEventListener("mousedown", handleOutside);
   }, []);
 
+  // Helper to handle clicks and decide whether to close the card
+  const handleAction = (callback, shouldClose = true) => {
+    if (callback) callback();
+    if (shouldClose) {
+      setOpen(false);
+      setView("menu");
+    }
+  };
+
   return (
     <div className="relative inline-block" ref={cardRef}>
       {/* --- TRIGGER AVATAR --- */}
@@ -75,14 +84,14 @@ export default function UserProfile({ user, onLogout }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             className={`
-              absolute right-0 mt-3 w-[290px] bg-white 
+              absolute right-0 mt-3 w-[290px] max-sm:w-[92vw] bg-white 
               shadow-[0_20px_50px_rgba(0,0,0,0.22)] z-[999] 
               overflow-hidden rounded-[26px] border border-slate-100
               max-sm:fixed max-sm:top-1/2 max-sm:left-1/2 max-sm:-translate-x-1/2 max-sm:-translate-y-1/2
             `}
           >
             <div className="flex flex-col">
-              {/* --- HEADER: Dynamic for Guest/User/Admin --- */}
+              {/* --- HEADER --- */}
               <div className={`relative ${isAdmin ? 'p-4' : 'p-6'} overflow-hidden bg-gradient-to-br transition-all ${user ? currentTheme : 'from-slate-700 to-slate-900'}`}>
                 <div className="absolute inset-0 opacity-10 pointer-events-none">
                   <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -129,34 +138,21 @@ export default function UserProfile({ user, onLogout }) {
               {/* --- BODY --- */}
               <div className={`px-5 ${isAdmin ? 'py-4' : 'py-5'} bg-white -mt-5 rounded-t-[30px] relative z-20`}>
                 {!user ? (
-                  /* GUEST VIEW: Professional Info */
                   <div className="space-y-4">
                     <div className="text-center pb-2">
                      <p className="text-slate-500 text-[11px] font-medium leading-relaxed">
-  Join our <span className="text-slate-900 font-bold">MPQP Elite Community</span> to unlock <span className="text-slate-900 font-bold">RGPV Diploma</span> resources and your personalized academic dashboard.
-</p>
+                        Join our <span className="text-slate-900 font-bold">MPQP Elite Community</span> to unlock <span className="text-slate-900 font-bold">RGPV Diploma</span> resources.
+                     </p>
                     </div>
                     
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                        <Zap size={16} className="text-amber-500" />
-                        <span className="text-xs font-bold text-slate-700">Real-time Analytics</span>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-                        <Users size={16} className="text-blue-500" />
-                        <span className="text-xs font-bold text-slate-700">Expert Community</span>
-                      </div>
-                    </div>
-
                     <button 
-                      onClick={() => navigate("/signup")}
+                      onClick={() => handleAction(() => navigate("/signup"))}
                       className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-200 transition-all active:scale-95 text-[11px] font-black uppercase tracking-widest"
                     >
                       <LogIn size={16} /> Authenticate Now
                     </button>
                   </div>
                 ) : view === "menu" ? (
-                  /* LOGGED IN USER VIEW */
                   <div className="space-y-2">
                     <div className="flex items-center justify-between px-2 mb-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dashboard Console</span>
@@ -166,28 +162,28 @@ export default function UserProfile({ user, onLogout }) {
                     <MenuOption 
                       icon={<User size={18} />} 
                       label="Public Identity" 
-                      onClick={() => navigate("/user-account")}
+                      onClick={() => handleAction(() => navigate("/user-account"))}
                       color={isAdmin ? "text-amber-600" : "text-blue-600"}
                     />
                     
                     <MenuOption 
                       icon={<Settings size={18} />} 
                       label="Preferences" 
-                      onClick={() => setView("edit")} 
+                      onClick={() => setView("edit")} // Notice: No handleAction here to keep it open
                     />
 
                     {isAdmin && (
                       <MenuOption 
                         icon={<ShieldCheck size={18} />} 
                         label="System Root" 
-                        onClick={() => navigate("/3EwV67iMsaehQU2W-@nitesh_Amule-@74-89-33eVGkVyzOYJF3")}
+                        onClick={() => handleAction(() => navigate("/3EwV67iMsaehQU2W-@nitesh_Amule-@74-89-33eVGkVyzOYJF3"))}
                         isSpecial={true}
                       />
                     )}
 
                     <div className="pt-3">
                       <button
-                        onClick={onLogout}
+                        onClick={() => handleAction(onLogout)}
                         className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-slate-900 hover:bg-red-600 text-white transition-all shadow-lg active:scale-95 text-[10px] font-black uppercase tracking-widest"
                       >
                         <LogOut size={16} /> Terminate
@@ -216,7 +212,7 @@ export default function UserProfile({ user, onLogout }) {
                          if(val.trim()) { 
                             setDisplayName(val); 
                             localStorage.setItem(`userDisplayName_${user.email}`, val); 
-                            setView("menu"); 
+                            handleAction(null, true); // This closes the card after save
                          }
                       }}
                       className={`w-full py-3.5 rounded-2xl text-white font-black text-[11px] tracking-widest shadow-lg active:scale-95 transition-all ${isAdmin ? 'bg-amber-600' : 'bg-blue-600'}`}
