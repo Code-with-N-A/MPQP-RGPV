@@ -25,7 +25,6 @@ function Nave() {
     { name: "Home", path: "/", icon: <FiHome /> },
     { name: "Paper Upload", path: "/paper-upload", icon: <FiUploadCloud /> },
     { name: "User Status", path: "/user-status", icon: <FiActivity /> },
-    { name: "TOP 10 Users", path: "/Top-10-user", icon: <FiAward /> },
   ];
 
   // 3. Search & Menu Toggles

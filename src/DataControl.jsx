@@ -1,383 +1,289 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useApiData } from "./ContextAPI";
 import { 
-  RotateCw, 
-  Search, 
-  Filter, 
-  Trash2, 
-  CheckCircle, 
-  XCircle, 
-  ExternalLink, 
-  Mail, 
-  RefreshCcw 
+  Search, Trash2, CheckCircle, XCircle, ExternalLink, 
+  RefreshCcw, Database, Filter, RotateCcw, ChevronRight 
 } from "lucide-react";
 
 export default function ControlD() {
-  const { API_URL } = useApiData();
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [updatingRows, setUpdatingRows] = useState({}); // { [id]: action }
-  const [expandedSection, setExpandedSection] = useState("new"); // Default open "new"
+  const { API_URL, data, setData, fetchData, loading: apiLoading, filterOptions } = useApiData();
+  
+  const [localLoading, setLocalLoading] = useState(false);
+  const [updatingRows, setUpdatingRows] = useState({});
+  const [activeTab, setActiveTab] = useState("all"); 
+  const [hasSearched, setHasSearched] = useState(false);
+  const [lastSearchedFilters, setLastSearchedFilters] = useState("");
 
-  const [yearFilter, setYearFilter] = useState("");
-  const [semFilter, setSemFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [branchFilter, setBranchFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState(sessionStorage.getItem("admin_year") || "");
+  const [semFilter, setSemFilter] = useState(sessionStorage.getItem("admin_sem") || "");
+  const [branchFilter, setBranchFilter] = useState(sessionStorage.getItem("admin_branch") || "");
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchColumn, setSearchColumn] = useState("subjectName");
 
-  const [uniqueYears, setUniqueYears] = useState([]);
-  const [uniqueSemesters, setUniqueSemesters] = useState([]);
-  const [uniqueBranches, setUniqueBranches] = useState([]);
-  const [uniqueTypes, setUniqueTypes] = useState([]);
+  const options = filterOptions || { years: [], sems: [], branches: [] };
 
-  const searchColumns = [
-    { label: "Subject", value: "subjectName" },
-    { label: "Paper Code", value: "paperCode" },
-    { label: "Branch", value: "branch" },
-    { label: "Type", value: "type" },
-    { label: "Year", value: "year" },
-    { label: "Semester", value: "semester" },
-    { label: "Email", value: "email" },
-  ];
+  // 1. Smart Logic for Button State
+  const currentFiltersKey = `${yearFilter}-${semFilter}-${branchFilter}`;
+  const isFilterReady = yearFilter !== "" && semFilter !== "" && branchFilter !== "";
+  
+  // Button tab disable hoga jab: loading ho RAHI ho, ya Filters incomplete hon, ya wahi purana data screen par ho
+  const isApplyDisabled = !isFilterReady || apiLoading || localLoading || (hasSearched && currentFiltersKey === lastSearchedFilters);
 
-  // Load Data Function (Memoized for performance)
-  const loadData = useCallback(async (isManualRefresh = false) => {
-    if (isManualRefresh) setIsRefreshing(true);
-    else setLoading(true);
-
-    try {
-      const res = await fetch(`${API_URL}?action=list`);
-      const json = await res.json();
-      if (json.status === "success") {
-        const fetchedData = json.rows || [];
-        setData(fetchedData);
-        sessionStorage.setItem('dashboardData', JSON.stringify(fetchedData));
-        window.dashboardDataLoaded = true;
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [API_URL]);
-
-  useEffect(() => {
-    if (window.dashboardDataLoaded) {
-      const storedData = sessionStorage.getItem('dashboardData');
-      if (storedData) {
-        setData(JSON.parse(storedData));
-        setLoading(false);
-      } else {
-        loadData();
-      }
+  const loadData = async (forceType = "") => {
+    setLocalLoading(true);
+    let params = "&admin=true";
+    
+    if (forceType === "pending") {
+      params += "&status=disabled";
+    } else if (isFilterReady) {
+      params += `&year=${yearFilter}&semester=${semFilter}&branch=${branchFilter}`;
+      sessionStorage.setItem("admin_year", yearFilter);
+      sessionStorage.setItem("admin_sem", semFilter);
+      sessionStorage.setItem("admin_branch", branchFilter);
+      setHasSearched(true);
+      setLastSearchedFilters(currentFiltersKey);
     } else {
-      loadData();
+      params += "&status=disabled";
     }
-  }, [loadData]);
+
+    await fetchData(params); 
+    setLocalLoading(false);
+  };
 
   useEffect(() => {
-    if (data.length > 0) {
-      const years = [...new Set(data.map(row => String(row.year)).filter(y => y))].sort();
-      const semesters = [...new Set(data.map(row => String(row.semester)).filter(s => s))].sort();
-      const branches = [...new Set(data.map(row => String(row.branch).toLowerCase()).filter(b => b))].sort();
-      const types = [...new Set(data.map(row => String(row.type)).filter(t => t))].sort();
-      setUniqueYears(years);
-      setUniqueSemesters(semesters);
-      setUniqueBranches(branches);
-      setUniqueTypes(types);
+    if (data.length === 0) {
+      loadData("pending");
     }
-  }, [data]);
+  }, []);
 
-  const updateStatus = async (id, newStatus) => {
-    const action = newStatus.toLowerCase() === 'disabled' ? 'disable' : 'enable';
-    setUpdatingRows((prev) => ({ ...prev, [id]: action }));
+  const resetFilters = () => {
+    setYearFilter("");
+    setSemFilter("");
+    setBranchFilter("");
+    setHasSearched(false);
+    setLastSearchedFilters("");
+    sessionStorage.removeItem("admin_year");
+    sessionStorage.removeItem("admin_sem");
+    sessionStorage.removeItem("admin_branch");
+    loadData("pending"); 
+  };
+
+  const handleStatusChange = async (id, currentStatus) => {
+    const newStatus = currentStatus?.toLowerCase() === "enabled" ? "Disabled" : "Enabled";
+    setUpdatingRows(prev => ({ ...prev, [id]: true }));
     try {
       const res = await fetch(API_URL, {
         method: "POST",
-        body: JSON.stringify({ action: "updateStatus", id, status: newStatus }),
+        body: JSON.stringify({ action: "updateStatus", id: id, status: newStatus }),
       });
-      const json = await res.json();
-      if (json.status === "success") {
-        setData((prev) =>
-          prev.map((row) => (row.id === id ? { ...row, status: newStatus } : row))
-        );
-      } else alert("Error: " + json.message);
-    } catch (err) {
-      alert("Error updating status.");
-    } finally {
-      setUpdatingRows((prev) => {
-        const newState = { ...prev };
-        delete newState[id];
-        return newState;
-      });
-    }
-  };
-
-  const deleteRow = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this record?")) return;
-    setUpdatingRows((prev) => ({ ...prev, [id]: 'delete' }));
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action: "deleteRow", id }),
-      });
-      const json = await res.json();
-      if (json.status === "success") setData((prev) => prev.filter((row) => row.id !== id));
-      else alert("Error: " + json.message);
-    } catch (err) {
-      alert("Error deleting record.");
-    } finally {
-      setUpdatingRows((prev) => {
-        const newState = { ...prev };
-        delete newState[id];
-        return newState;
-      });
-    }
-  };
-
-  const filteredData = data
-    .filter((row) => {
-      const rowYear = String(row.year || "").trim();
-      const rowSem = String(row.semester || "").trim();
-      const rowType = String(row.type || "").trim().toLowerCase();
-      const rowBranch = String(row.branch || "").trim().toLowerCase();
-
-      const yearMatch = yearFilter ? rowYear === yearFilter.trim() : true;
-      const semMatch = semFilter ? rowSem === semFilter.trim() : true;
-      const typeMatch = typeFilter ? rowType === typeFilter.trim().toLowerCase() : true;
-      const branchMatch = branchFilter ? rowBranch === branchFilter.trim().toLowerCase() : true;
-
-      let searchMatch = true;
-      if (searchQuery.trim() !== "") {
-        const value = String(row[searchColumn] || "").toLowerCase();
-        searchMatch = value.includes(searchQuery.toLowerCase());
+      const result = await res.text();
+      if (result.toLowerCase().includes("success")) {
+        setData(prev => prev.map(row => row.id === id ? { ...row, status: newStatus } : row));
       }
-      return yearMatch && semMatch && typeMatch && branchMatch && searchMatch;
-    })
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  const newRows = filteredData.slice(0, 15);
-  const enabledRows = filteredData.filter((r) => r.status?.toLowerCase() === "enabled");
-  const disabledRows = filteredData.filter((r) => r.status?.toLowerCase() === "disabled");
-
-  const highlightText = (text) => {
-    if (!searchQuery) return text;
-    const regex = new RegExp(`(${searchQuery})`, "gi");
-    return text.split(regex).map((part, i) =>
-      regex.test(part) ? (
-        <span key={i} className="bg-yellow-200 text-black px-1 rounded">{part}</span>
-      ) : part
-    );
+    } catch (err) {
+      alert("Update failed!");
+    } finally {
+      setUpdatingRows(prev => ({ ...prev, [id]: false }));
+    }
   };
 
-  const titleCase = (str) => str ? str.split(" ").map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ") : "";
-  const formatDate = (ts) => ts ? new Date(ts).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : "";
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete permanent?")) return;
+    setUpdatingRows(prev => ({ ...prev, [id]: true }));
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "deleteRow", id: id }),
+      });
+      if ((await res.text()).toLowerCase().includes("success")) {
+        setData(prev => prev.filter(row => row.id !== id));
+      }
+    } finally {
+      setUpdatingRows(prev => ({ ...prev, [id]: false }));
+    }
+  };
 
-  // Table Component
-  const Table = ({ rows, title }) => (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mb-10">
-      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-        <h2 className="text-lg font-bold text-gray-800 uppercase tracking-wider">{title}</h2>
-        <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold">
-          {rows.length} Records
-        </span>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-gray-800 text-gray-100 uppercase text-xs">
-            <tr>
-              <th className="px-4 py-4 font-semibold">ID / Date</th>
-              <th className="px-4 py-4 font-semibold">Subject & Code</th>
-              <th className="px-4 py-4 font-semibold">Details</th>
-              <th className="px-4 py-4 font-semibold">Uploader</th>
-              <th className="px-4 py-4 font-semibold text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {rows.map((row) => (
-              <tr key={row.id} className="hover:bg-blue-50/50 transition-colors">
-                <td className="px-4 py-4">
-                  <div className="font-bold text-gray-900">#{highlightText(String(row.id))}</div>
-                  <div className="text-gray-500 text-xs">{formatDate(row.timestamp)}</div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="font-medium text-blue-700">{highlightText(String(row.subjectName))}</div>
-                  <div className="text-gray-500 text-xs">Code: {highlightText(String(row.paperCode))}</div>
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex gap-2 mb-1">
-                    <span className="bg-gray-100 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{row.branch}</span>
-                    <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase">{row.type}</span>
-                  </div>
-                  <div className="text-xs text-gray-600">Year {row.year} | Sem {row.semester}</div>
-                </td>
-                <td className="px-4 py-4">
-                  {row.email ? (
-                    <button 
-                       onClick={() => window.location.href = `mailto:${row.email}`}
-                       className="flex items-center gap-1 text-indigo-600 hover:text-indigo-800 font-medium"
-                    >
-                      <Mail size={14} /> <span className="max-w-[120px] truncate">{row.email}</span>
-                    </button>
-                  ) : <span className="text-gray-400">No Email</span>}
-                </td>
-                <td className="px-4 py-4">
-                  <div className="flex items-center justify-center gap-2">
-                    {row.pdfUrl && (
-                      <a href={row.pdfUrl} target="_blank" rel="noreferrer" className="p-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition" title="View PDF">
-                        <ExternalLink size={18} />
-                      </a>
-                    )}
-                    
-                    {row.status?.toLowerCase() === "enabled" ? (
-                      <button 
-                        onClick={() => updateStatus(row.id, "Disabled")}
-                        disabled={updatingRows[row.id]}
-                        className="p-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition"
-                        title="Disable"
-                      >
-                        {updatingRows[row.id] === 'disable' ? <RotateCw size={18} className="animate-spin" /> : <XCircle size={18} />}
-                      </button>
-                    ) : (
-                      <button 
-                        onClick={() => updateStatus(row.id, "Enabled")}
-                        disabled={updatingRows[row.id]}
-                        className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition"
-                        title="Enable"
-                      >
-                        {updatingRows[row.id] === 'enable' ? <RotateCw size={18} className="animate-spin" /> : <CheckCircle size={18} />}
-                      </button>
-                    )}
+  const filteredData = data.filter((row) => {
+    const rowStatus = String(row.status || "Disabled").trim().toLowerCase();
+    const matchTab = activeTab === "all" ? true : rowStatus === activeTab;
+    const sTerm = searchQuery.toLowerCase();
+    return matchTab && (row.subjectName?.toLowerCase().includes(sTerm) || row.paperCode?.toLowerCase().includes(sTerm));
+  });
 
-                    <button 
-                      onClick={() => deleteRow(row.id)}
-                      disabled={updatingRows[row.id]}
-                      className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
-                      title="Delete"
-                    >
-                      {updatingRows[row.id] === 'delete' ? <RotateCw size={18} className="animate-spin" /> : <Trash2 size={18} />}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  const isLoading = localLoading || apiLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8 mt-10">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 font-sans text-slate-900">
       <div className="max-w-7xl mx-auto">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Paper Management</h1>
-            <p className="text-gray-500">Manage, verify and control examination papers</p>
+        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm mb-6 border border-slate-200/60 gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
+              <Database size={24} />
+            </div>
+            <div>
+              <h1 className="text-xl font-black tracking-tight text-slate-800">CONTROL CENTER</h1>
+              <p className="text-slate-400 text-xs font-bold flex items-center gap-2 uppercase tracking-wider">
+                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" /> Live Database: {data.length} Items
+              </p>
+            </div>
           </div>
           
-          <button 
-            onClick={() => loadData(true)}
-            disabled={isRefreshing || loading}
-            className="flex items-center justify-center gap-2 bg-white border border-gray-300 px-6 py-2.5 rounded-xl shadow-sm hover:bg-gray-50 active:scale-95 transition-all font-semibold text-gray-700"
-          >
-            <RefreshCcw size={18} className={isRefreshing ? "animate-spin text-blue-600" : ""} />
-            {isRefreshing ? "Refreshing..." : "Sync Data"}
-          </button>
+          <div className="flex gap-3 w-full md:w-auto">
+             <button onClick={resetFilters} title="Reset All" className="p-3.5 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all border border-slate-200">
+                <RotateCcw size={20} />
+             </button>
+             <button 
+                onClick={() => loadData()} 
+                disabled={isLoading}
+                className="flex-1 md:flex-none px-8 py-3.5 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 disabled:opacity-50 shadow-xl shadow-slate-200 active:scale-95 transition-all uppercase tracking-widest"
+              >
+                <RefreshCcw size={18} className={isLoading ? "animate-spin" : ""} />
+                {isLoading ? "Syncing..." : "Sync Cloud"}
+              </button>
+          </div>
         </div>
 
-        {/* Filters Card */}
-        <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 mb-8">
-          <div className="flex items-center gap-2 mb-4 text-gray-700 font-bold uppercase text-xs tracking-widest">
-            <Filter size={16} /> Filters & Search
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-            <div className="relative col-span-1 sm:col-span-2">
-               <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-               <input
-                type="text"
-                placeholder="Quick search..."
-                value={searchQuery}
+        {/* Search & Filters Grid */}
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200/60 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            
+            {/* Search Box */}
+            <div className="relative lg:col-span-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input 
+                type="text" placeholder="Search by name..." 
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 placeholder:text-slate-300 transition-all shadow-inner"
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition"
               />
             </div>
+            
+            {/* Filter Selects */}
+            {[
+              { val: yearFilter, set: setYearFilter, opt: options.years, label: "Year" },
+              { val: semFilter, set: setSemFilter, opt: options.sems, label: "Semester" },
+              { val: branchFilter, set: setBranchFilter, opt: options.branches, label: "Branch" }
+            ].map((f, i) => (
+              <select 
+                key={i} 
+                value={f.val} 
+                className="bg-slate-50 border-none p-3.5 rounded-2xl font-black text-slate-600 focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-inner appearance-none"
+                onChange={(e) => f.set(e.target.value)}
+              >
+                <option value="">Select {f.label}</option>
+                {f.opt?.map(o => <option key={o} value={o}>{f.label} {o}</option>)}
+              </select>
+            ))}
 
-            <select value={searchColumn} onChange={(e) => setSearchColumn(e.target.value)} className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
-              {searchColumns.map((col) => <option key={col.value} value={col.value}>{col.label}</option>)}
-            </select>
-
-            <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none">
-              <option value="">All Years</option>
-              {uniqueYears.map((y) => <option key={y} value={y}>{y}</option>)}
-            </select>
-
-            <select value={semFilter} onChange={(e) => setSemFilter(e.target.value)} className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none">
-              <option value="">All Semesters</option>
-              {uniqueSemesters.map((s) => <option key={s} value={s}>Sem {s}</option>)}
-            </select>
-
-            <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className="p-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none">
-              <option value="">All Branches</option>
-              {uniqueBranches.map((b) => <option key={b} value={b}>{titleCase(b)}</option>)}
-            </select>
-
+            {/* Smart Apply Button */}
             <button 
-              onClick={() => {setYearFilter(""); setSemFilter(""); setTypeFilter(""); setBranchFilter(""); setSearchQuery("");}}
-              className="p-2.5 text-red-600 font-bold hover:bg-red-50 rounded-xl transition"
+              onClick={() => loadData()}
+              disabled={isApplyDisabled}
+              className={`py-3.5 rounded-2xl font-black uppercase text-xs tracking-widest transition-all flex items-center justify-center gap-2 shadow-lg
+                ${isApplyDisabled 
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed" 
+                  : "bg-emerald-500 text-white hover:bg-emerald-600 shadow-emerald-100 active:scale-95"}`}
             >
-              Clear
+              <Filter size={18} /> {hasSearched && currentFiltersKey === lastSearchedFilters ? "Results Active" : "Apply Filter"}
             </button>
           </div>
+          
+          {!isFilterReady && (
+            <div className="flex items-center gap-2 mt-4 px-2">
+              <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping" />
+              <p className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">Please select all filters to search the cloud database</p>
+            </div>
+          )}
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex p-1.5 bg-gray-200/50 rounded-2xl w-fit mb-8 gap-1">
-          {[
-            { id: "new", label: "Recent", color: "blue" },
-            { id: "enabled", label: "Enabled", color: "green" },
-            { id: "disabled", label: "Disabled", color: "red" }
-          ].map((tab) => (
+        {/* Tabs for Quick Sort */}
+        <div className="flex flex-wrap gap-2 mb-6 bg-slate-200/50 p-1.5 w-fit border border-slate-200">
+          {["all", "disabled", "enabled"].map((t) => (
             <button
-              key={tab.id}
-              onClick={() => setExpandedSection(tab.id)}
-              className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${
-                expandedSection === tab.id 
-                ? "bg-white shadow-sm text-gray-900 scale-100" 
-                : "text-gray-500 hover:text-gray-700"
-              }`}
+              key={t}
+              onClick={() => setActiveTab(t)}
+              className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all tracking-widest ${activeTab === t ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-800"}`}
             >
-              {tab.label}
+              {t} <span className="ml-1 opacity-50">({t === 'all' ? data.length : data.filter(d => (d.status || "").toLowerCase().trim() === t).length})</span>
             </button>
           ))}
         </div>
 
-        {/* Loading State */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-gray-500 font-medium animate-pulse">Loading dashboard records...</p>
+        {/* Main Table / Grid */}
+        <div className="bg-white shadow-sm border border-slate-200/60 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  <th className="px-8 py-6">Subject / Code</th>
+                  <th className="px-8 py-6">Identity Meta</th>
+                  <th className="px-8 py-6">Current Status</th>
+                  <th className="px-8 py-6 text-center">Manage</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="4" className="py-32 text-center">
+                      <div className="flex flex-col items-center gap-4">
+                        <RefreshCcw className="animate-spin text-indigo-500" size={40} />
+                        <span className="font-black text-slate-300 uppercase tracking-widest text-sm">Accessing Secure API...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredData.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="py-32 text-center text-slate-300 font-black uppercase italic tracking-widest">
+                      No Records Found in this category
+                    </td>
+                  </tr>
+                ) : (
+                  filteredData.map((row) => (
+                    <tr key={row.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-8 py-6">
+                        <div className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors">{row.subjectName}</div>
+                        <div className="text-[10px] text-indigo-500 font-bold mt-1 inline-block bg-indigo-50 px-2.5 py-0.5 rounded-full">{row.paperCode}</div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="text-sm font-black text-slate-600">{row.branch}</div>
+                        <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">S{row.semester} • {row.year}</div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase border ${row.status?.toLowerCase() === 'enabled' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                          <div className={`w-1.5 h-1.5 rounded-full ${row.status?.toLowerCase() === 'enabled' ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
+                          {row.status || "Disabled"}
+                        </div>
+                      </td>
+                      <td className="px-8 py-6">
+                        <div className="flex justify-center gap-3">
+                          <a href={row.pdfUrl} target="_blank" rel="noreferrer" title="Preview PDF" className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-900 hover:text-white transition-all border border-slate-100 shadow-sm"><ExternalLink size={18}/></a>
+                          
+                          <button 
+                            onClick={() => handleStatusChange(row.id, row.status)} 
+                            disabled={updatingRows[row.id]} 
+                            title={row.status === "Enabled" ? "Disable Now" : "Enable Now"}
+                            className={`p-3 rounded-2xl border transition-all shadow-sm ${row.status === "Enabled" ? "bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-500 hover:text-white" : "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-500 hover:text-white"}`}
+                          >
+                            {updatingRows[row.id] ? <RefreshCcw size={18} className="animate-spin"/> : (row.status === "Enabled" ? <XCircle size={18}/> : <CheckCircle size={18}/>)}
+                          </button>
+
+                          <button 
+                            onClick={() => handleDelete(row.id)} 
+                            disabled={updatingRows[row.id]} 
+                            title="Delete Row"
+                            className="p-3 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-600 hover:text-white border border-rose-100 shadow-sm"
+                          >
+                            <Trash2 size={18}/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <>
-            {expandedSection === "new" && <Table rows={newRows} title="Recent Uploads" />}
-            {expandedSection === "enabled" && <Table rows={enabledRows} title="Live Papers" />}
-            {expandedSection === "disabled" && <Table rows={disabledRows} title="Disabled / Hidden Papers" />}
-            
-            {filteredData.length === 0 && (
-              <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
-                <div className="text-gray-300 mb-4 flex justify-center"><Search size={48}/></div>
-                <h3 className="text-xl font-bold text-gray-800">No results found</h3>
-                <p className="text-gray-500">Try adjusting your filters or search terms</p>
-              </div>
-            )}
-          </>
-        )}
+        </div>
       </div>
     </div>
   );
