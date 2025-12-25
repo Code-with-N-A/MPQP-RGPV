@@ -47,7 +47,6 @@ export default function Footer() {
         <div>
           <h2 className="text-white text-xl font-semibold mb-4 border-l-4 border-yellow-500 pl-3">Follow Me</h2>
           <div className="flex space-x-4 text-2xl">
-            <a href="https://github.com/Code-with-N-A" target="_blank" rel="noreferrer" className="hover:text-white transition transform hover:scale-125"><FaGithub /></a>
             <a href="https://www.linkedin.com/in/nitesh-amule-60223b34b/" target="_blank" rel="noreferrer" className="hover:text-blue-400 transition transform hover:scale-125"><FaLinkedin /></a>
             <a href="https://www.youtube.com/@AmuleStack74" target="_blank" rel="noreferrer" className="hover:text-red-500 transition transform hover:scale-125"><FaYoutube /></a>
             <a href="mailto:mpqp073@gmail.com" className="hover:text-yellow-400 transition transform hover:scale-125"><FaEnvelope /></a>
