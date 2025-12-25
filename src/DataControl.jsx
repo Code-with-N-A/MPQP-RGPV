@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useApiData } from "./ContextAPI";
 import { 
   Search, Trash2, CheckCircle, XCircle, ExternalLink, 
-  RefreshCcw, Database, Filter, RotateCcw, ChevronRight 
+  RefreshCcw, Database, Filter, RotateCcw, User, Tag 
 } from "lucide-react";
 
 export default function ControlD() {
@@ -21,11 +21,8 @@ export default function ControlD() {
 
   const options = filterOptions || { years: [], sems: [], branches: [] };
 
-  // 1. Smart Logic for Button State
   const currentFiltersKey = `${yearFilter}-${semFilter}-${branchFilter}`;
   const isFilterReady = yearFilter !== "" && semFilter !== "" && branchFilter !== "";
-  
-  // Button tab disable hoga jab: loading ho RAHI ho, ya Filters incomplete hon, ya wahi purana data screen par ho
   const isApplyDisabled = !isFilterReady || apiLoading || localLoading || (hasSearched && currentFiltersKey === lastSearchedFilters);
 
   const loadData = async (forceType = "") => {
@@ -102,21 +99,29 @@ export default function ControlD() {
     }
   };
 
-  const filteredData = data.filter((row) => {
-    const rowStatus = String(row.status || "Disabled").trim().toLowerCase();
-    const matchTab = activeTab === "all" ? true : rowStatus === activeTab;
-    const sTerm = searchQuery.toLowerCase();
-    return matchTab && (row.subjectName?.toLowerCase().includes(sTerm) || row.paperCode?.toLowerCase().includes(sTerm));
-  });
+  const filteredData = useMemo(() => {
+    return data.filter((row) => {
+      const rowStatus = String(row.status || "Disabled").trim().toLowerCase();
+      const matchTab = activeTab === "all" ? true : rowStatus === activeTab;
+      const sTerm = searchQuery.toLowerCase();
+      return (
+        matchTab && 
+        (row.subjectName?.toLowerCase().includes(sTerm) || 
+         row.paperCode?.toLowerCase().includes(sTerm) ||
+         row.email?.toLowerCase().includes(sTerm) ||
+         row.type?.toLowerCase().includes(sTerm))
+      );
+    });
+  }, [data, activeTab, searchQuery]);
 
   const isLoading = localLoading || apiLoading;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8 font-sans text-slate-900 pt-15">
       <div className="max-w-7xl mx-auto">
         
         {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 rounded-[2rem] shadow-sm mb-6 border border-slate-200/60 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 shadow-sm mb-6 border border-slate-200/60 gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-200">
               <Database size={24} />
@@ -130,7 +135,7 @@ export default function ControlD() {
           </div>
           
           <div className="flex gap-3 w-full md:w-auto">
-             <button onClick={resetFilters} title="Reset All" className="p-3.5 bg-slate-100 text-slate-500 rounded-2xl hover:bg-slate-200 transition-all border border-slate-200">
+             <button onClick={resetFilters} title="Reset All" className="p-3.5 bg-slate-100 text-slate-500  hover:bg-slate-200 transition-all border border-slate-200">
                 <RotateCcw size={20} />
              </button>
              <button 
@@ -145,20 +150,18 @@ export default function ControlD() {
         </div>
 
         {/* Search & Filters Grid */}
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-200/60 mb-8">
+        <div className="bg-white p-6 shadow-sm border border-slate-200/60 mb-8">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             
-            {/* Search Box */}
             <div className="relative lg:col-span-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
-                type="text" placeholder="Search by name..." 
+                type="text" placeholder="Search paper, email..." 
                 className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700 placeholder:text-slate-300 transition-all shadow-inner"
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             
-            {/* Filter Selects */}
             {[
               { val: yearFilter, set: setYearFilter, opt: options.years, label: "Year" },
               { val: semFilter, set: setSemFilter, opt: options.sems, label: "Semester" },
@@ -167,7 +170,7 @@ export default function ControlD() {
               <select 
                 key={i} 
                 value={f.val} 
-                className="bg-slate-50 border-none p-3.5 rounded-2xl font-black text-slate-600 focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-inner appearance-none"
+                className="bg-slate-50 border-none p-3.5 font-black text-slate-600 focus:ring-2 focus:ring-indigo-500 cursor-pointer shadow-inner appearance-none"
                 onChange={(e) => f.set(e.target.value)}
               >
                 <option value="">Select {f.label}</option>
@@ -175,7 +178,6 @@ export default function ControlD() {
               </select>
             ))}
 
-            {/* Smart Apply Button */}
             <button 
               onClick={() => loadData()}
               disabled={isApplyDisabled}
@@ -197,7 +199,7 @@ export default function ControlD() {
         </div>
 
         {/* Tabs for Quick Sort */}
-        <div className="flex flex-wrap gap-2 mb-6 bg-slate-200/50 p-1.5 w-fit border border-slate-200">
+        <div className="flex flex-nowrap gap-2 mb-6 bg-slate-200/50 p-1.5 w-full border border-slate-200">
           {["all", "disabled", "enabled"].map((t) => (
             <button
               key={t}
@@ -209,14 +211,14 @@ export default function ControlD() {
           ))}
         </div>
 
-        {/* Main Table / Grid */}
-        <div className="bg-white shadow-sm border border-slate-200/60 overflow-hidden">
+        {/* Main Table */}
+        <div className="bg-white shadow-sm border border-slate-200/60 overflow-hidden ">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                  <th className="px-8 py-6">Subject / Code</th>
-                  <th className="px-8 py-6">Identity Meta</th>
+                  <th className="px-8 py-6">Subject / Type</th>
+                  <th className="px-8 py-6">Identity & Uploader</th>
                   <th className="px-8 py-6">Current Status</th>
                   <th className="px-8 py-6 text-center">Manage</th>
                 </tr>
@@ -234,19 +236,35 @@ export default function ControlD() {
                 ) : filteredData.length === 0 ? (
                   <tr>
                     <td colSpan="4" className="py-32 text-center text-slate-300 font-black uppercase italic tracking-widest">
-                      No Records Found in this category
+                      No Records Found
                     </td>
                   </tr>
                 ) : (
                   filteredData.map((row) => (
                     <tr key={row.id} className="hover:bg-slate-50 transition-colors group">
                       <td className="px-8 py-6">
-                        <div className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors">{row.subjectName}</div>
-                        <div className="text-[10px] text-indigo-500 font-bold mt-1 inline-block bg-indigo-50 px-2.5 py-0.5 rounded-full">{row.paperCode}</div>
+                        <div className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors uppercase">{row.subjectName}</div>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <span className="text-[10px] text-indigo-500 font-bold bg-indigo-50 px-2.5 py-0.5 rounded-md border border-indigo-100">{row.paperCode}</span>
+                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase border flex items-center gap-1 ${row.type?.toLowerCase() === 'regular' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                            <Tag size={10} /> {row.type || "N/A"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-8 py-6">
                         <div className="text-sm font-black text-slate-600">{row.branch}</div>
                         <div className="text-[10px] text-slate-400 font-bold uppercase mt-1">S{row.semester} • {row.year}</div>
+                        
+                        {/* ✅ CLICKABLE EMAIL LINK */}
+                        <div className="flex items-center gap-1.5 mt-2 text-slate-400">
+                            <User size={12} className="text-slate-300" />
+                            <a 
+                              href={`mailto:${row.email || "mpqp073@gmail.com"}`}
+                              className="text-[10px] font-medium lowercase italic hover:text-indigo-600 hover:underline transition-all"
+                            >
+                              {row.email || "mpqp073@gmail.com"}
+                            </a>
+                        </div>
                       </td>
                       <td className="px-8 py-6">
                         <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase border ${row.status?.toLowerCase() === 'enabled' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
@@ -261,7 +279,6 @@ export default function ControlD() {
                           <button 
                             onClick={() => handleStatusChange(row.id, row.status)} 
                             disabled={updatingRows[row.id]} 
-                            title={row.status === "Enabled" ? "Disable Now" : "Enable Now"}
                             className={`p-3 rounded-2xl border transition-all shadow-sm ${row.status === "Enabled" ? "bg-amber-50 text-amber-500 border-amber-100 hover:bg-amber-500 hover:text-white" : "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-500 hover:text-white"}`}
                           >
                             {updatingRows[row.id] ? <RefreshCcw size={18} className="animate-spin"/> : (row.status === "Enabled" ? <XCircle size={18}/> : <CheckCircle size={18}/>)}
@@ -270,7 +287,6 @@ export default function ControlD() {
                           <button 
                             onClick={() => handleDelete(row.id)} 
                             disabled={updatingRows[row.id]} 
-                            title="Delete Row"
                             className="p-3 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-600 hover:text-white border border-rose-100 shadow-sm"
                           >
                             <Trash2 size={18}/>
