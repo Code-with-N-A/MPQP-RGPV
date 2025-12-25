@@ -24,6 +24,8 @@ export default function Home({ isAdmin = false }) {
   const [user, setUser] = useState(null);
   const [sortColumn, setSortColumn] = useState("year");
   const [sortDirection, setSortDirection] = useState("desc");
+  // Highlight state for active PDF
+  const [activePdfId, setActivePdfId] = useState(null);
 
   const navigate = useNavigate();
   const isFilterReady = yearFilter && semFilter && branchFilter;
@@ -47,7 +49,6 @@ export default function Home({ isAdmin = false }) {
   const handleFetchData = useCallback(async () => {
     if (!isAdmin && !isFilterReady) return;
     
-    // नया सर्च शुरू होने पर पुराना डेटा हटाना
     setData([]); 
     setLoading(true);
     setHasSearched(true);
@@ -85,11 +86,12 @@ export default function Home({ isAdmin = false }) {
     finally { setLoading(false); }
   }, [API_URL, yearFilter, semFilter, branchFilter, isAdmin, isFilterReady]);
 
-  // PDF Access Check Function
-  const handlePdfAccess = (pdfUrl) => {
+  // Updated PDF Access Check with Highlight Logic
+  const handlePdfAccess = (rowId, pdfUrl) => {
     if (!user) {
       navigate("/signup");
     } else {
+      setActivePdfId(rowId); // Set this row as active
       window.open(pdfUrl, "_blank");
     }
   };
@@ -115,8 +117,7 @@ export default function Home({ isAdmin = false }) {
   return (
     <div className="min-h-screen bg-[#F4F7F9] font-sans">
       
-      {/* STICKY FILTER BAR */}
-      <div className="sticky top-6 bg-[#F4F7F9] pt-10 pb-2  shadow-sm md:shadow-none z-10">
+      <div className="sticky top-6 bg-[#F4F7F9] pt-10 pb-2 shadow-sm md:shadow-none z-10">
         <div className="max-w-7xl mx-auto bg-white border border-slate-300 p-3">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-4 flex-1 overflow-x-auto no-scrollbar whitespace-nowrap">
@@ -141,7 +142,7 @@ export default function Home({ isAdmin = false }) {
             </div>
 
             <div className="flex items-center gap-2 pl-2 border-l border-slate-100">
-              <button onClick={() => { setYearFilter(""); setSemFilter(""); setBranchFilter(""); setData([]); setHasSearched(false); }} className="p-2 text-slate-400 hover:text-red-600 border border-slate-100 rounded">
+              <button onClick={() => { setYearFilter(""); setSemFilter(""); setBranchFilter(""); setData([]); setHasSearched(false); setActivePdfId(null); }} className="p-2 text-slate-400 hover:text-red-600 border border-slate-100 rounded">
                 <RotateCcw size={16} />
               </button>
               <button 
@@ -183,7 +184,10 @@ export default function Home({ isAdmin = false }) {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {sortedData.map((row, index) => (
-                    <tr key={row.id} className="hover:bg-blue-50/50 transition-colors">
+                    <tr 
+                      key={row.id} 
+                      className={`transition-colors ${activePdfId === row.id ? 'bg-blue-100/80 border-l-4 border-l-blue-800' : 'hover:bg-blue-50/50'}`}
+                    >
                       <td className="p-4 text-center text-slate-400 font-medium text-sm">{index + 1}</td>
                       <td className="p-4">
                         <div className="font-bold text-slate-700">{row.year}</div>
@@ -198,10 +202,10 @@ export default function Home({ isAdmin = false }) {
                       </td>
                       <td className="p-4 text-right">
                         <button 
-                          onClick={() => handlePdfAccess(row.pdfUrl)}
-                          className="px-4 py-2 border border-blue-800 text-blue-800 rounded text-[10px] font-bold uppercase hover:bg-blue-800 hover:text-white transition-all"
+                          onClick={() => handlePdfAccess(row.id, row.pdfUrl)}
+                          className={`px-4 py-2 border rounded text-[10px] font-bold uppercase transition-all ${activePdfId === row.id ? 'bg-blue-800 text-white border-blue-800' : 'border-blue-800 text-blue-800 hover:bg-blue-800 hover:text-white'}`}
                         >
-                          View Document
+                          {activePdfId === row.id ? 'Active' : 'View'}
                         </button>
                       </td>
                     </tr>
@@ -211,7 +215,6 @@ export default function Home({ isAdmin = false }) {
             </div>
           </div>
         ) : hasSearched ? (
-          /* --- PROFESSIONAL NO DATA CARD --- */
           <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-xl shadow-sm animate-in fade-in duration-500">
             <div className="p-5 bg-slate-50 rounded-full mb-4">
                <AlertCircle size={48} className="text-slate-300" />
@@ -220,7 +223,6 @@ export default function Home({ isAdmin = false }) {
             <p className="text-slate-500 text-xs mt-2 font-medium">चयनित फ़िल्टर के लिए कोई रिकॉर्ड नहीं मिला। कृपया पुनः प्रयास करें।</p>
           </div>
         ) : (
-          /* --- DEFAULT VIEW --- */
           <div className="grid lg:grid-cols-5 gap-8 items-start animate-in fade-in duration-700">
             <div className="lg:col-span-3 bg-white border border-slate-300 rounded-xl p-8 sm:p-12 shadow-sm">
                <div className="flex items-center gap-3 mb-6">
