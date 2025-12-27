@@ -1,257 +1,258 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { auth } from "./firebase";
-import { useApiData } from "./ContextAPI"; 
-import { motion, AnimatePresence } from "framer-motion"; 
-import { 
-    FiLock, FiAlertTriangle, FiInfo, FiFileText, 
-    FiRefreshCw, FiExternalLink, FiUser, FiCalendar, FiCheckCircle, FiClock
+import { useApiData } from "./ContextAPI";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+    FiRefreshCw, FiCheckCircle, FiShield,
+    FiArrowRight, FiActivity, FiSearch, FiGlobe, FiLock, FiStar, FiFileText, FiAward, FiInfo
 } from "react-icons/fi";
 
-const StatusTimeline = ({ status }) => {
+// --- PROFESSIONAL STEP TRACKER COMPONENT ---
+const ProcessTracker = ({ paper }) => {
+    const status = paper.status?.toLowerCase();
     const isApproved = status === "approved" || status === "enabled";
-    const steps = [
-        { label: "Received", active: true, color: "bg-emerald-500" },
-        { label: "Review", active: true, color: isApproved ? "bg-emerald-500" : "bg-amber-500 animate-pulse" },
-        { label: "Live", active: isApproved, color: isApproved ? "bg-emerald-500" : "bg-slate-200" }
-    ];
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return "N/A";
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    };
 
     return (
-        <div className="flex items-center gap-1">
-            {steps.map((step, idx) => (
-                <React.Fragment key={idx}>
-                    <div className={`w-2.5 h-2.5 rounded-full ${step.color} shadow-sm transition-colors duration-500`} title={step.label} />
-                    {idx < steps.length - 1 && (
-                        <div className={`w-4 h-[2px] transition-colors duration-500 ${step.active && (idx === 0 || isApproved) ? "bg-emerald-500" : "bg-slate-200"}`} />
-                    )}
-                </React.Fragment>
-            ))}
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 mb-5 shadow-sm relative overflow-hidden group hover:border-indigo-300 transition-all duration-300">
+            <div className="flex justify-between items-start mb-10">
+                <div>
+                    <div className="flex gap-2 mb-3">
+                        <span className="text-[10px] font-black bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-md uppercase tracking-wider">{paper.branch || "Academic"}</span>
+                        <span className="text-[10px] font-black bg-slate-100 text-slate-500 px-2.5 py-1 rounded-md uppercase tracking-wider">{paper.year || "Gen"} • SEM {paper.semester || "0"}</span>
+                    </div>
+                    <h4 className="text-lg font-extrabold text-slate-800 uppercase tracking-tight leading-none mb-2">{paper.subjectName}</h4>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                        <FiFileText size={12}/> Ref ID: {paper.timestamp ? paper.timestamp.toString().slice(-6) : "PENDING"} • {formatDate(paper.timestamp)}
+                    </p>
+                </div>
+                <div className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm ${isApproved ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}>
+                    {isApproved ? "Verified" : "Under Review"}
+                </div>
+            </div>
+
+            <div className="relative flex items-center justify-between px-6">
+                <div className="absolute top-5 left-14 right-14 h-[3px] bg-slate-100 -z-0">
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: isApproved ? "100%" : "50%" }}
+                        className="h-full bg-indigo-600 transition-all duration-1000"
+                    />
+                </div>
+
+                {[
+                    { icon: <FiCheckCircle size={18} />, label: "Submission", active: true },
+                    { icon: isApproved ? <FiCheckCircle size={18} /> : <FiSearch size={18} />, label: "Verification", active: true, pulse: !isApproved },
+                    { icon: <FiGlobe size={18} />, label: "Public Live", active: isApproved, bounce: isApproved }
+                ].map((step, i) => (
+                    <div key={i} className="relative z-10 flex flex-col items-center">
+                        <motion.div
+                            animate={step.pulse ? { scale: [1, 1.1, 1], backgroundColor: ["#f59e0b", "#fbbf24", "#f59e0b"] } : {}}
+                            transition={{ repeat: Infinity, duration: 2 }}
+                            className={`w-11 h-11 rounded-full flex items-center justify-center border-4 border-white shadow-lg ${step.active ? (step.bounce ? "bg-emerald-500 animate-bounce" : "bg-indigo-600") : "bg-slate-200"} text-white`}
+                        >
+                            {step.icon}
+                        </motion.div>
+                        <p className="text-[9px] font-black mt-3 text-slate-700 uppercase tracking-tighter">{step.label}</p>
+                    </div>
+                ))}
+            </div>
+
+            <div className="mt-8 pt-4 border-t border-slate-50 flex justify-end">
+                <a href={paper.pdfUrl} target="_blank" rel="noreferrer" className="text-[11px] font-black uppercase text-indigo-600 flex items-center gap-2 hover:gap-4 transition-all group-hover:underline">
+                    View Digital Copy <FiArrowRight />
+                </a>
+            </div>
         </div>
     );
 };
 
 export default function ApprovalS() {
-    const { data: allData, fetchData, loading: contextLoading, setData } = useApiData();
+    const { data: allData, fetchData } = useApiData();
     const [myPapers, setMyPapers] = useState([]);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [lastUpdated, setLastUpdated] = useState(null);
+    const [showToast, setShowToast] = useState(false);
 
     const user = auth.currentUser;
     const userEmail = user?.email?.toLowerCase().trim() || "";
 
-    // 1. Storage se data uthane ka logic
-    const loadFromCache = useCallback(() => {
-        const cachedData = sessionStorage.getItem(`submissions_${userEmail}`);
-        const cachedTime = sessionStorage.getItem(`lastSync_${userEmail}`);
-
-        if (cachedData) {
-            const parsedData = JSON.parse(cachedData);
-            setData(parsedData); // Context ko storage wala data de do
-            if (cachedTime) setLastUpdated(new Date(cachedTime));
-            return true; 
-        }
-        return false;
-    }, [userEmail, setData]);
-
-    // 2. Data Filter Logic (Local State Update)
-    const filterUserSubmissions = useCallback((data) => {
-        if (!data || !Array.isArray(data)) return;
-        const filtered = data
-            .filter(row => {
-                const rowEmail = row.email?.toLowerCase().trim();
-                return rowEmail === userEmail && row.status?.toLowerCase() !== "rejected";
-            })
-            .reverse();
-        setMyPapers(filtered);
-    }, [userEmail]);
-
-    // 3. Sync Function (Sirf Button par ya First Time load par)
-    const syncData = useCallback(async (isManual = true) => {
+    const syncData = useCallback(async () => {
         if (!userEmail) return;
-        
-        // Agar manual click nahi hai aur cache mil gaya, toh API call mat karo
-        if (!isManual && loadFromCache()) return;
-
         setIsRefreshing(true);
-        try {
-            // Context se fresh data fetch karna
-            await fetchData({ isApprovalScreen: true });
-            const now = new Date();
-            setLastUpdated(now);
-            sessionStorage.setItem(`lastSync_${userEmail}`, now.toISOString());
-        } catch (error) {
-            console.error("Sync error:", error);
-        } finally {
-            setIsRefreshing(false);
-        }
-    }, [userEmail, fetchData, loadFromCache]);
+        try { await fetchData({ isApprovalScreen: true }); }
+        catch (error) { console.error("Sync Error:", error); }
+        finally { setIsRefreshing(false); }
+    }, [userEmail, fetchData]);
 
-    // 4. Mount hone par check karo
+    useEffect(() => { if (userEmail) syncData(); }, [userEmail, syncData]);
+
     useEffect(() => {
-        if (userEmail) {
-            syncData(false); // isManual = false (Check cache first)
+        if (allData) {
+            let userRecords = allData.filter(row => row.email?.toLowerCase().trim() === userEmail).reverse();
+            setMyPapers(userRecords);
+            
+            const visitCount = parseInt(sessionStorage.getItem("verify_visit_count") || "0");
+            if (userRecords.some(p => p.status?.toLowerCase() === "approved") && visitCount < 2) {
+                setShowToast(true);
+                sessionStorage.setItem("verify_visit_count", (visitCount + 1).toString());
+                setTimeout(() => setShowToast(false), 5000);
+            }
         }
-    }, [userEmail, syncData]);
+    }, [allData, userEmail]);
 
-    // 5. Jab bhi Context ka data badle, use Storage mein save karo
-    useEffect(() => {
-        if (allData && allData.length > 0) {
-            sessionStorage.setItem(`submissions_${userEmail}`, JSON.stringify(allData));
-            filterUserSubmissions(allData);
-        }
-    }, [allData, userEmail, filterUserSubmissions]);
-
-    if (!user) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-6">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-100 max-w-sm">
-                    <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-                        <FiLock size={40} />
-                    </div>
-                    <h2 className="text-2xl font-black text-slate-800 mb-2">Private Access</h2>
-                    <p className="text-slate-500 mb-6">Please sign in to track your document submissions.</p>
-                </motion.div>
-            </div>
-        );
-    }
+    if (!user) return <div className="h-screen flex items-center justify-center font-black tracking-widest text-slate-300 uppercase bg-[#F8FAFC]">Access Denied</div>;
 
     return (
-        <div className="min-h-screen bg-[#f8fafc] pb-20 pt-10 font-[Poppins] selection:bg-indigo-100">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                
-                <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-                        <h1 className="text-4xl font-black text-slate-900 tracking-tight">My Submissions</h1>
-                        <p className="text-slate-500 flex items-center gap-2 mt-2 font-medium">
-                            <FiUser className="text-indigo-500" />
-                            Account: <span className="text-indigo-600 font-bold">{userEmail}</span>
-                        </p>
+        <div className="min-h-screen bg-[#F8FAFC] text-slate-900 pb-24 font-['Inter',sans-serif]">
+
+            {/* --- TOP TOAST --- */}
+            <AnimatePresence>
+                {showToast && (
+                    <motion.div
+                        initial={{ y: -50, opacity: 0 }} animate={{ y: 20, opacity: 1 }} exit={{ y: -50, opacity: 0 }}
+                        className="fixed top-0 left-0 right-0 z-[100] flex justify-center px-6 pointer-events-none"
+                    >
+                        <div className="bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-4 border border-white/10">
+                            <FiAward className="text-amber-400" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Document Live: Your contribution is verified.</span>
+                        </div>
                     </motion.div>
+                )}
+            </AnimatePresence>
 
+            {/* --- CLEAN HEADER --- */}
+            <div className=" pt-10">
+                <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="hidden sm:block text-right">
-                            <p className="text-[10px] uppercase tracking-widest font-black text-slate-400">Status</p>
-                            <p className="text-xs font-bold text-emerald-500 flex items-center justify-end gap-1">
-                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"/> Synced
-                            </p>
+                        <div className="bg-indigo-600 p-2.5 rounded-xl shadow-lg shadow-indigo-100">
+                            <FiShield className="text-white" size={22} />
                         </div>
-                        {/* REFRESH BUTTON - Trigger manual sync */}
-                        <button 
-                            onClick={() => syncData(true)}
-                            disabled={isRefreshing || contextLoading}
-                            className="group flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 disabled:opacity-50"
-                        >
-                            <FiRefreshCw className={`${isRefreshing || contextLoading ? "animate-spin" : "group-hover:rotate-180 transition-transform duration-500"}`} />
-                            <span className="font-bold text-sm">{(isRefreshing || contextLoading) ? "Updating..." : "Refresh Sync"}</span>
-                        </button>
+                        <div>
+                            <h1 className="text-xl md:text-2xl font-black tracking-tighter text-slate-900 uppercase italic">
+                                User <span className="text-indigo-600">Status</span>
+                            </h1>
+                            <div className="flex items-center gap-2 mt-1">
+                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Global Repository Sync active</p>
+                            </div>
+                        </div>
                     </div>
-                </header>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    {[
-                        { label: 'Total Uploaded', val: myPapers.length, icon: <FiFileText/>, col: 'text-blue-600' },
-                        { label: 'Approved', val: myPapers.filter(p => p.status?.toLowerCase() === 'enabled' || p.status?.toLowerCase() === 'approved').length, icon: <FiCheckCircle/>, col: 'text-emerald-600' },
-                        { label: 'Pending', val: myPapers.filter(p => p.status?.toLowerCase() !== 'enabled' && p.status?.toLowerCase() !== 'approved').length, icon: <FiClock/>, col: 'text-amber-600' },
-                        { label: 'Last Sync', val: lastUpdated ? lastUpdated.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '--', icon: <FiRefreshCw/>, col: 'text-slate-600' }
-                    ].map((s, i) => (
-                        <div key={i} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-                            <div className={`mb-2 ${s.col}`}>{s.icon}</div>
-                            <div className="text-2xl font-black text-slate-800">{s.val}</div>
-                            <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{s.label}</div>
-                        </div>
-                    ))}
+                    <button
+                        onClick={syncData}
+                        className="flex items-center gap-2 bg-slate-900 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-full font-black text-[10px] uppercase transition-all active:scale-95 group"
+                    >
+                        <FiRefreshCw className={`${isRefreshing ? "animate-spin" : "group-hover:rotate-180"} transition-transform duration-700`} size={14} />
+                        <span className="hidden sm:inline tracking-widest">Sync Status</span>
+                    </button>
                 </div>
+            </div>
 
-                <div className="bg-white shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden rounded-[2rem]">
-                    {(contextLoading && myPapers.length === 0) ? (
-                        <div className="py-32 text-center">
-                            <div className="relative w-16 h-16 mx-auto mb-4">
-                                <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
-                                <div className="absolute inset-0 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="max-w-7xl mx-auto px-6 mt-10">
+                <div className="grid lg:grid-cols-12 gap-8">
+
+                    {/* LEFT: INFORMATION & ANALYTICS */}
+                    <div className="lg:col-span-4 space-y-6">
+                        {/* Status Card */}
+                        <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><FiActivity size={60}/></div>
+                            <h3 className="text-[11px] font-black uppercase text-indigo-600 mb-6 flex items-center gap-2 tracking-widest">
+                                <FiInfo /> System Intelligence
+                            </h3>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Current Data</span>
+                                    <span className="text-sm font-black text-slate-800">{myPapers.length}</span>
+                                </div>
                             </div>
-                            <p className="text-slate-400 font-bold">Checking Storage...</p>
-                        </div>
-                    ) : myPapers.length === 0 ? (
-                        <div className="py-32 text-center px-6">
-                            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <FiFileText size={40} className="text-slate-200" />
+                            <div className="mt-8 pt-6 border-t border-slate-100">
+                                <div className="space-y-4 text-[10px] font-bold text-slate-500 uppercase">
+                                    <p className="flex gap-3"><FiCheckCircle className="text-emerald-500 shrink-0" /> Verified papers are open-sourced.</p>
+                                    <p className="flex gap-3"><FiSearch className="text-amber-500 shrink-0" /> Standard review: 24-48 Hours.</p>
+                                </div>
                             </div>
-                            <h3 className="text-2xl font-black text-slate-800">No Data Found</h3>
-                            <p className="text-slate-400 max-w-xs mx-auto mt-2">Try clicking "Refresh Sync" to fetch data from cloud.</p>
                         </div>
-                    ) : (
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse min-w-[800px]">
-                                <thead>
-                                    <tr className="bg-slate-50/50 border-b border-slate-100">
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Subject Details</th>
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Category</th>
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Current Status</th>
-                                        <th className="px-8 py-6 text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    <AnimatePresence mode='popLayout'>
-                                        {myPapers.map((p, i) => (
-                                            <motion.tr 
-                                                key={p.id || i}
-                                                layout
-                                                initial={{ opacity: 0 }}
-                                                animate={{ opacity: 1 }}
-                                                exit={{ opacity: 0 }}
-                                                className="hover:bg-slate-50/80 transition-colors group"
-                                            >
-                                                <td className="px-8 py-6">
-                                                    <div className="flex flex-col">
-                                                        <span className="font-black text-slate-800 text-lg group-hover:text-indigo-600 transition-colors">{p.subjectName}</span>
-                                                        <div className="flex items-center gap-3 mt-1">
-                                                            <span className="bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-indigo-100">{p.paperCode}</span>
-                                                            <span className="text-slate-400 text-[11px] font-medium flex items-center gap-1">
-                                                                <FiCalendar size={12}/> {p.timestamp ? new Date(p.timestamp).toLocaleDateString() : 'N/A'}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="flex flex-wrap gap-1.5">
-                                                        <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider">{p.branch}</span>
-                                                        <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider">Sem {p.semester}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6">
-                                                    <div className="space-y-2">
-                                                        <StatusTimeline status={p.status?.toLowerCase()} />
-                                                        <div className={`text-[10px] font-black uppercase tracking-widest ${p.status?.toLowerCase() === 'enabled' || p.status?.toLowerCase() === 'approved' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                            {p.status || 'Pending Review'}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-8 py-6 text-center">
-                                                    {p.pdfUrl ? (
-                                                        <motion.a 
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            href={p.pdfUrl} 
-                                                            target="_blank" 
-                                                            className="inline-flex items-center gap-2 bg-slate-900 text-white px-5 py-2.5 rounded-2xl font-bold text-xs"
-                                                        >
-                                                            View PDF <FiExternalLink size={14}/>
-                                                        </motion.a>
-                                                    ) : (
-                                                        <span className="text-slate-300 font-black text-[10px] uppercase italic">No Link</span>
-                                                    )}
-                                                </td>
-                                            </motion.tr>
-                                        ))}
-                                    </AnimatePresence>
-                                </tbody>
-                            </table>
+
+                        {/* Impact Card (The new card you asked for) */}
+                        <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-xl shadow-indigo-100">
+                            <FiAward size={32} className="mb-4 text-indigo-200" />
+                            <h3 className="text-lg font-black leading-tight mb-2">Academic Impact</h3>
+                            <p className="text-indigo-100 text-[10px] font-medium leading-relaxed uppercase tracking-wider mb-6">
+                                Your contributions assist thousands of students in their exam preparation. We appreciate your role in building a free digital library.
+                            </p>
+                            <div className="bg-white/10 p-3 rounded-lg border border-white/10">
+                                <p className="text-[9px] font-black text-indigo-200 uppercase mb-1 tracking-widest">Community Badge</p>
+                                <p className="text-xs font-bold uppercase">Silver Contributor</p>
+                            </div>
                         </div>
-                    )}
+                    </div>
+
+                    {/* RIGHT: TRACKING LIST */}
+                    <div className="lg:col-span-8">
+                        <AnimatePresence mode="wait">
+                            {myPapers.length > 0 ? (
+                                <motion.div key="list" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                    <div className="flex items-center justify-between mb-6 px-1">
+                                        <h2 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Verification Pipeline</h2>
+                                        <span className="text-[10px] font-black text-indigo-600">Updated Real-time</span>
+                                    </div>
+                                    {myPapers.map((paper, idx) => (
+                                        <ProcessTracker key={idx} paper={paper} />
+                                    ))}
+                                </motion.div>
+                           ) : (
+    <motion.div
+        key="empty"
+        initial={{ opacity: 0, scale: 0.98 }} 
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white border-2 border-dashed border-slate-200 p-12 md:p-20 text-center rounded-3xl"
+    >
+        {/* Neutral Icon jo sabke liye sahi hai */}
+        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-300">
+            <FiShield size={40} />
+        </div>
+        
+        <h3 className="text-2xl font-black text-slate-800 mb-4 uppercase tracking-tighter italic">
+             वेरिफिकेशन
+        </h3>
+        
+        <p className="text-slate-500 text-[11px] font-bold max-w-sm mx-auto leading-relaxed mb-10 uppercase tracking-widest">
+            "शिक्षा की शक्ति साझा करने में है" <br/>
+            आपकी वेरिफिकेशन लिस्ट अभी पूरी तरह से क्लियर है। 
+            जब भी आप नए पेपर्स अपलोड करेंगे, उनका लाइव स्टेटस यहाँ दिखाई देगा।
+        </p>
+
+        <div className="flex flex-wrap justify-center gap-6 items-center border-t border-slate-50 pt-10">
+            <div className="text-center">
+                <p className="text-lg font-black text-slate-300">01</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">स्कैन और अपलोड</p>
+            </div>
+            <div className="w-8 h-[2px] bg-slate-100"></div>
+            <div className="text-center">
+                <p className="text-lg font-black text-slate-300">02</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">क्वालिटी चेक</p>
+            </div>
+            <div className="w-8 h-[2px] bg-slate-100"></div>
+            <div className="text-center">
+                <p className="text-lg font-black text-slate-300">03</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ग्लोबल लाइव</p>
+            </div>
+        </div>
+    </motion.div>
+)}
+                        </AnimatePresence>
+                    </div>
                 </div>
+            </div>
 
-                <footer className="mt-12 text-center text-slate-400 text-[11px] font-bold uppercase tracking-widest">
-                    Data is cached locally • Click Refresh Sync for latest updates
-                </footer>
+            {/* --- SYSTEM FOOTER --- */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 py-4 text-center z-40">
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Official Academic Repository • MPQP Global v2.5</p>
             </div>
         </div>
     );

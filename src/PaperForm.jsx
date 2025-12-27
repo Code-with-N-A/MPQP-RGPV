@@ -23,9 +23,30 @@ export default function PaperForm() {
   const [isVerified, setIsVerified] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
 
-  const branches = [
-    "CSE", "CE", "ME", "EE", "EC", "CH", "PE", "IC", "CTM", "IT", "MS", "OE", "MOM", "BCC"
-  ];
+  // Mapping Object for Full Forms
+  const branchesMap = {
+    "CSE": "Computer Science Engineering",
+    "CE": "Civil Engineering",
+    "ME": "Mechanical Engineering",
+    "EE": "Electrical Engineering",
+    "EC": "Electronics Engineering",
+    "CH": "Chemical Engineering",
+    "PE": "Production Engineering",
+    "IC": "Instrumentation & Control Engineering",
+    "CTM": "Computer Technology & Maintenance",
+    "IT": "Information Technology",
+    "MS": "Metallurgical Engineering",
+    "OE": "Office Engineering",
+    "MOM": "Modern Office Management",
+    "BCC": "Bachelor of Computer Applications",
+    "AE": "Automobile Engineering",
+    "MIN": "Mining Engineering",
+    "TX": "Textile Engineering",
+    "IP": "Industrial & Production Engineering",
+    "AR": "Architecture Assistantship",
+    "EI": "Electronics & Instrumentation Engineering",
+    "PET": "Petrochemical Engineering"
+  };
 
   const isPaperCodeValid = /^[0-9]{4}$/.test(form.paperCode.trim());
 
@@ -38,6 +59,10 @@ export default function PaperForm() {
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+
+    // Reset verification on any change
+    setIsVerified(false);
+    setDisableSubmit(true);
 
     if (name === "pdfFile") {
       const file = files[0];
@@ -56,14 +81,10 @@ export default function PaperForm() {
       }
 
       setForm({ ...form, pdfFile: file });
-      setIsVerified(false);
-      setDisableSubmit(true);
       return;
     }
 
     setForm({ ...form, [name]: value });
-    setIsVerified(false);
-    setDisableSubmit(true);
   };
 
   const fileToBase64 = (file) =>
@@ -92,7 +113,7 @@ export default function PaperForm() {
         semester: form.semester,
         paperCode: getFullPaperCode(),
         type: form.type,
-        branch: form.branch,
+        branch: form.branch, // Yaha short form hi jayega (state se)
       });
 
       const res = await fetch(`${API_URL}?${params.toString()}`);
@@ -138,7 +159,6 @@ export default function PaperForm() {
 
       const customFileName = `${form.year}_${getFullPaperCode()}_${safeSubject}_${form.type}.pdf`;
 
-
       const payload = {
         id: genID(),
         year: form.year,
@@ -147,7 +167,7 @@ export default function PaperForm() {
         subjectName: form.subjectName,
         type: form.type,
         status: form.status,
-        branch: form.branch,
+        branch: form.branch, // Database me short form jayega
         email: auth.currentUser?.email || "",
         filename: customFileName,
         pdfBase64: base64PDF,
@@ -191,13 +211,13 @@ export default function PaperForm() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4 mt-15">
         <style>
           {`
-  @keyframes progress { from { width: 100%; } to { width: 0%; } } 
-  @keyframes slideDown { 
-    from { transform: translateY(-100%); opacity: 0; } 
-    to { transform: translateY(0); opacity: 1; } 
-  }
-  .animate-slideDown { animation: slideDown 0.4s ease-out forwards; }
-`}
+            @keyframes progress { from { width: 100%; } to { width: 0%; } } 
+            @keyframes slideDown { 
+              from { transform: translateY(-100%); opacity: 0; } 
+              to { transform: translateY(0); opacity: 1; } 
+            }
+            .animate-slideDown { animation: slideDown 0.4s ease-out forwards; }
+          `}
         </style>
 
         {toast.show && (
@@ -221,7 +241,6 @@ export default function PaperForm() {
             </div>
           </div>
         )}
-
 
         <div className="max-w-[600px] w-full bg-white shadow-2xl border border-gray-200 overflow-hidden rounded-xl">
           <div className="bg-gradient-to-r from-gray-600 to-gray-700 p-4 text-center">
@@ -285,7 +304,12 @@ export default function PaperForm() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
                 <select name="branch" value={form.branch} onChange={handleChange} disabled={loading || isRequesting} className="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm outline-none focus:ring-2 focus:ring-gray-400">
                   <option value="">Select Branch</option>
-                  {branches.map((b) => (<option key={b} value={b}>{b}</option>))}
+                  {/* User ko Full Name dikhega, but database me Key (short form) jayegi */}
+                  {Object.entries(branchesMap).map(([short, full]) => (
+                    <option key={short} value={short}>
+                      {full} ({short})
+                    </option>
+                  ))}
                 </select>
               </div>
 
