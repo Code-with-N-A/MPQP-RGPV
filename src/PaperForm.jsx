@@ -25,7 +25,7 @@ export default function PaperForm() {
 
   // Mapping Object for Full Forms
   const branchesMap = {
-    "All_Branches ":" 1 & 2",
+    "All_Branches ":" 1 & 2 Sem",
     "CSE": "Computer Science Engineering",
     "CE": "Civil Engineering",
     "ME": "Mechanical Engineering",
