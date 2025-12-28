@@ -262,7 +262,7 @@ export default function PaperForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
                   <select name="semester" value={form.semester} onChange={handleChange} disabled={loading || isRequesting} className="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm outline-none focus:ring-2 focus:ring-gray-400">
                     <option value="">Select Semester</option>
-                    {[1, 2, 3, 4, 5, 6].map(num => <option key={num}>{num}</option>)}
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map(num => <option key={num}>{num}</option>)}
                   </select>
                 </div>
               </div>
