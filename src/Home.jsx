@@ -230,7 +230,7 @@ export default function Home({ isAdmin = false }) {
                     <BookOpen size={30} />
                   </div>
                   <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight border-l-4 border-blue-800 pl-4">
-                    Digital Resource Library
+                   RGPV Polytechnic Diploma Question Papers
                   </h1>
                </div>
                
