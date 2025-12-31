@@ -4,7 +4,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import { useNavigate } from "react-router-dom";
 import {
-  RefreshCcw, Filter, RotateCcw, Upload,
+  RefreshCcw, Filter, RotateCcw, Upload, 
   ChevronUp, ChevronDown, Search, FileText, BookOpen, AlertCircle
 } from "lucide-react";
 
@@ -48,8 +48,8 @@ export default function Home({ isAdmin = false }) {
 
   const handleFetchData = useCallback(async () => {
     if (!isAdmin && !isFilterReady) return;
-
-    setData([]);
+    
+    setData([]); 
     setLoading(true);
     setHasSearched(true);
 
@@ -63,7 +63,7 @@ export default function Home({ isAdmin = false }) {
       });
       const res = await fetch(`${API_URL}?${params.toString()}`);
       const text = await res.text();
-
+      
       if (text.trim() && !text.includes("<!DOCTYPE")) {
         const rows = text.split("\n").filter(r => r.trim()).map(line => {
           const col = line.split("||");
@@ -79,30 +79,22 @@ export default function Home({ isAdmin = false }) {
         setData([]);
         sessionStorage.removeItem("cached_papers");
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err) { 
+      console.error(err); 
       setData([]);
     }
     finally { setLoading(false); }
   }, [API_URL, yearFilter, semFilter, branchFilter, isAdmin, isFilterReady]);
 
-  // Updated PDF Access Check with Highlight Logic (YAHA PAE GOOGEL ENALETICS KO EVENT COUNT KARNE VALA BAHI LOGIK LAGA HEY )
-  const handlePdfAccess = (rowId, pdfUrl, fileName) => {
+  // Updated PDF Access Check with Highlight Logic
+  const handlePdfAccess = (rowId, pdfUrl) => {
     if (!user) {
       navigate("/signup");
     } else {
       setActivePdfId(rowId); // Set this row as active
-
-      // GA4 event push for download tracking
-      window.gtag('event', 'download', {
-        event_category: 'PDF',
-        event_label: fileName
-      });
-
-      window.open(pdfUrl, "_blank"); // Open PDF in new tab
+      window.open(pdfUrl, "_blank");
     }
   };
-
 
   const handleSort = (column) => {
     if (sortColumn === column) setSortDirection(prev => prev === "asc" ? "desc" : "asc");
@@ -124,7 +116,7 @@ export default function Home({ isAdmin = false }) {
 
   return (
     <div className="min-h-screen bg-[#F4F7F9] font-sans">
-
+      
       <div className="sticky top-6 bg-[#F4F7F9] pt-10 pb-2 shadow-sm md:shadow-none z-10">
         <div className="max-w-7xl mx-auto bg-white border border-slate-300 p-3">
           <div className="flex items-center gap-4">
@@ -132,7 +124,7 @@ export default function Home({ isAdmin = false }) {
               <div className="flex items-center gap-2 text-slate-800 font-bold text-[10px] uppercase border-r pr-4">
                 <Filter size={14} /> <span>Filters</span>
               </div>
-
+              
               <div className="flex gap-3">
                 <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className="form-select text-xs font-bold border-slate-200 rounded min-w-[120px]">
                   <option value="">YEAR</option>
@@ -153,7 +145,7 @@ export default function Home({ isAdmin = false }) {
               <button onClick={() => { setYearFilter(""); setSemFilter(""); setBranchFilter(""); setData([]); setHasSearched(false); setActivePdfId(null); }} className="p-2 text-slate-400 hover:text-red-600 border border-slate-100 rounded">
                 <RotateCcw size={16} />
               </button>
-              <button
+              <button 
                 onClick={handleFetchData}
                 disabled={(!isAdmin && !isFilterReady) || loading}
                 className="flex items-center gap-2 px-4 py-2 bg-[#0F172A] text-white rounded font-bold text-[10px] uppercase tracking-widest hover:bg-blue-900 disabled:bg-slate-200"
@@ -175,14 +167,14 @@ export default function Home({ isAdmin = false }) {
         ) : data.length > 0 ? (
           <div className="bg-white border border-slate-200 shadow-sm rounded-lg overflow-hidden">
             <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-              <h2 className="text-sm font-bold text-slate-800 uppercase italic">Found {data.length} Available Documents</h2>
+               <h2 className="text-sm font-bold text-slate-800 uppercase italic">Found {data.length} Available Documents</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>
                   <tr className="bg-slate-100/50 text-left border-b border-slate-200">
                     <th className="p-4 text-[11px] font-bold text-slate-500 uppercase w-16 text-center">Sr.No</th>
-                    {[{ l: "Academic Session", k: "year" }, { l: "Branch", k: "branch" }, { l: "Subject Description", k: "subjectName" }].map(h => (
+                    {[{l:"Academic Session",k:"year"}, {l:"Branch",k:"branch"}, {l:"Subject Description",k:"subjectName"}].map(h => (
                       <th key={h.k} onClick={() => handleSort(h.k)} className="p-4 text-[11px] font-bold text-slate-700 uppercase cursor-pointer hover:bg-slate-200">
                         <div className="flex items-center gap-1">{h.l} <SortIcon col={h.k} /></div>
                       </th>
@@ -192,8 +184,8 @@ export default function Home({ isAdmin = false }) {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {sortedData.map((row, index) => (
-                    <tr
-                      key={row.id}
+                    <tr 
+                      key={row.id} 
                       className={`transition-colors ${activePdfId === row.id ? 'bg-blue-100/80 border-l-4 border-l-blue-800' : 'hover:bg-blue-50/50'}`}
                     >
                       <td className="p-4 text-center text-slate-400 font-medium text-sm">{index + 1}</td>
@@ -203,20 +195,18 @@ export default function Home({ isAdmin = false }) {
                       </td>
                       <td className="p-4 text-sm font-semibold text-slate-600 uppercase">{row.branch}</td>
                       <td className="p-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-900 uppercase">{row.subjectName}</span>
-                          <span className="text-[10px] text-slate-400 font-mono">{row.paperCode} | {row.type}</span>
-                        </div>
+                         <div className="flex flex-col">
+                            <span className="text-sm font-bold text-slate-900 uppercase">{row.subjectName}</span>
+                            <span className="text-[10px] text-slate-400 font-mono">{row.paperCode} | {row.type}</span>
+                         </div>
                       </td>
                       <td className="p-4 text-right">
-                        {/* (YAHA PAR BHII GOOGEL ANALETYCS KA EVENT COUNT LAGA HUVA HEY) */}
-                        <button
-                          onClick={() => handlePdfAccess(row.id, row.pdfUrl, `${row.subjectName}_${row.paperCode}.pdf`)}
+                        <button 
+                          onClick={() => handlePdfAccess(row.id, row.pdfUrl)}
                           className={`px-4 py-2 border rounded text-[10px] font-bold uppercase transition-all ${activePdfId === row.id ? 'bg-blue-800 text-white border-blue-800' : 'border-blue-800 text-blue-800 hover:bg-blue-800 hover:text-white'}`}
                         >
                           {activePdfId === row.id ? 'Active' : 'View'}
                         </button>
-
                       </td>
                     </tr>
                   ))}
@@ -227,7 +217,7 @@ export default function Home({ isAdmin = false }) {
         ) : hasSearched ? (
           <div className="flex flex-col items-center justify-center py-20 bg-white border border-slate-200 rounded-xl shadow-sm animate-in fade-in duration-500">
             <div className="p-5 bg-slate-50 rounded-full mb-4">
-              <AlertCircle size={48} className="text-slate-300" />
+               <AlertCircle size={48} className="text-slate-300" />
             </div>
             <h3 className="text-lg font-bold text-slate-800 uppercase tracking-tight">No Data Available</h3>
             <p className="text-slate-500 text-xs mt-2 font-medium">चयनित फ़िल्टर के लिए कोई रिकॉर्ड नहीं मिला। कृपया पुनः प्रयास करें।</p>
@@ -235,72 +225,71 @@ export default function Home({ isAdmin = false }) {
         ) : (
           <div className="grid lg:grid-cols-5 gap-8 items-start animate-in fade-in duration-700">
             <div className="lg:col-span-3 bg-white border border-slate-300 rounded-xl p-8 sm:p-12 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-blue-50 text-blue-800 rounded-lg">
-                  <BookOpen size={30} />
-                </div>
-                <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight border-l-4 border-blue-800 pl-4">
-                  RGPV Polytechnic Diploma Question Papers
-                </h1>
-              </div>
-
-              <p className="text-slate-600 text-lg leading-relaxed mb-8">
-                पुराने प्रश्न पत्र छात्रों के लिए सबसे महत्वपूर्ण मार्गदर्शक होते हैं। यह पोर्टल छात्र-एकता के आधार पर बनाया गया है। यदि आपके पास पिछले वर्षों के पेपर्स उपलब्ध हैं, तो कृपया उन्हें साझा करें।
+               <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-blue-50 text-blue-800 rounded-lg">
+                    <BookOpen size={30} />
+                  </div>
+                  <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tight border-l-4 border-blue-800 pl-4">
+                   RGPV Polytechnic Diploma Question Papers
+                  </h1>
+               </div>
+               
+               <p className="text-slate-600 text-lg leading-relaxed mb-8">
+                पुराने प्रश्न पत्र छात्रों के लिए सबसे महत्वपूर्ण मार्गदर्शक होते हैं। यह पोर्टल छात्र-एकता के आधार पर बनाया गया है। यदि आपके पास पिछले वर्षों के पेपर्स उपलब्ध हैं, तो कृपया उन्हें साझा करें। 
                 <br /><br />
                 <span className="bg-yellow-50 text-yellow-800 px-2 py-1 font-bold italic border border-yellow-200 text-sm">
                   "आपका एक छोटा सा योगदान किसी की परीक्षा की तैयारी को सफल बना सकता है।"
                 </span>
-              </p>
+               </p>
 
-              <div className="p-6 bg-slate-50 border-l-4 border-slate-900 rounded-r-lg mb-8">
-                <h4 className="font-bold text-slate-800 text-sm uppercase mb-2">महत्वपूर्ण सूचना:</h4>
-                <ul className="text-xs text-slate-500 space-y-2 list-disc ml-4">
-                  <li>पेपर्स को स्पष्ट रूप से स्कैन करके ही अपलोड करें।</li>
-                  <li>कृपया केवल आधिकारिक यूनिवर्सिटी प्रश्न पत्र ही साझा करें।</li>
-                  <li>अपलोड करने के बाद टीम द्वारा वेरिफिकेशन किया जाएगा।</li>
-                </ul>
-              </div>
+               <div className="p-6 bg-slate-50 border-l-4 border-slate-900 rounded-r-lg mb-8">
+                  <h4 className="font-bold text-slate-800 text-sm uppercase mb-2">महत्वपूर्ण सूचना:</h4>
+                  <ul className="text-xs text-slate-500 space-y-2 list-disc ml-4">
+                    <li>पेपर्स को स्पष्ट रूप से स्कैन करके ही अपलोड करें।</li>
+                    <li>कृपया केवल आधिकारिक यूनिवर्सिटी प्रश्न पत्र ही साझा करें।</li>
+                    <li>अपलोड करने के बाद टीम द्वारा वेरिफिकेशन किया जाएगा।</li>
+                  </ul>
+               </div>
 
-              <button
-                onClick={() => navigate("/paper-upload")}
+               <button 
+                onClick={() => navigate("/paper-upload")} 
                 className="flex items-center gap-3 px-10 py-4 bg-blue-800 text-white rounded font-bold text-sm uppercase tracking-widest hover:bg-[#0F172A] transition-all shadow-lg"
-              >
-                <Upload size={18} /> पेपर अपलोड करें (Upload Now)
-              </button>
+               >
+                 <Upload size={18} /> पेपर अपलोड करें (Upload Now)
+               </button>
             </div>
 
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-[#0F172A] p-8 rounded-xl text-white relative overflow-hidden group z-0">
-                <FileText className="absolute -right-4 -bottom-4 text-white/10 group-hover:rotate-12 transition-transform" size={120} />
-                <h3 className="text-xl font-bold mb-4">योगदान दें (Contribute)</h3>
-                <p className="text-slate-400 text-xs leading-relaxed mb-6">
-                  यह लाइब्रेरी पूरी तरह से छात्रों द्वारा संचालित है। यहाँ मौजूद हर पेपर किसी न किसी छात्र ने निःस्वार्थ भाव से अपलोड किया है।
-                </p>
-                <div className="text-[10px] font-bold text-blue-400 border-t border-white/10 pt-4 uppercase tracking-widest">
-                  Support Student Community
-                </div>
-              </div>
+               <div className="bg-[#0F172A] p-8 rounded-xl text-white relative overflow-hidden group z-0">
+                  <FileText className="absolute -right-4 -bottom-4 text-white/10 group-hover:rotate-12 transition-transform" size={120} />
+                  <h3 className="text-xl font-bold mb-4">योगदान दें (Contribute)</h3>
+                  <p className="text-slate-400 text-xs leading-relaxed mb-6">
+                    यह लाइब्रेरी पूरी तरह से छात्रों द्वारा संचालित है। यहाँ मौजूद हर पेपर किसी न किसी छात्र ने निःस्वार्थ भाव से अपलोड किया है।
+                  </p>
+                  <div className="text-[10px] font-bold text-blue-400 border-t border-white/10 pt-4 uppercase tracking-widest">
+                    Support Student Community
+                  </div>
+               </div>
 
-              <div className="bg-white border border-slate-300 p-8 rounded-xl">
-                <h3 className="text-slate-800 font-bold uppercase text-xs tracking-widest mb-6 border-b pb-2">Quick Instructions</h3>
-                <div className="space-y-6">
-                  <div className="flex gap-4">
-                    <div className="text-slate-300 font-black text-2xl italic">01.</div>
-                    <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">ऊपर दिए गए फ़िल्टर (Year, Sem, Branch) का उपयोग करके अपना पेपर खोजें।</p>
+               <div className="bg-white border border-slate-300 p-8 rounded-xl">
+                  <h3 className="text-slate-800 font-bold uppercase text-xs tracking-widest mb-6 border-b pb-2">Quick Instructions</h3>
+                  <div className="space-y-6">
+                    <div className="flex gap-4">
+                      <div className="text-slate-300 font-black text-2xl italic">01.</div>
+                      <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">ऊपर दिए गए फ़िल्टर (Year, Sem, Branch) का उपयोग करके अपना पेपर खोजें।</p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="text-slate-300 font-black text-2xl italic">02.</div>
+                      <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">यदि पेपर उपलब्ध नहीं है, तो "Search Records" बटन दबाकर सुनिश्चित करें।</p>
+                    </div>
                   </div>
-                  <div className="flex gap-4">
-                    <div className="text-slate-300 font-black text-2xl italic">02.</div>
-                    <p className="text-[11px] text-slate-500 font-semibold leading-relaxed">यदि पेपर उपलब्ध नहीं है, तो "Search Records" बटन दबाकर सुनिश्चित करें।</p>
-                  </div>
-                </div>
-              </div>
+               </div>
             </div>
           </div>
         )}
       </div>
 
-      <style dangerouslySetInnerHTML={{
-        __html: `
+      <style dangerouslySetInnerHTML={{ __html: `
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .form-select {
