@@ -88,13 +88,23 @@ export default function Home({ isAdmin = false }) {
 
   // Updated PDF Access Check with Highlight Logic
   const handlePdfAccess = (rowId, pdfUrl) => {
-    if (!user) {
-      navigate("/signup");
-    } else {
-      setActivePdfId(rowId); // Set this row as active
-      window.open(pdfUrl, "_blank");
+  if (!user) {
+    navigate("/signup");   // same as before
+  } else {
+    setActivePdfId(rowId);  // highlight logic same as before
+
+    // Google Analytics event added (extra, harmless)
+    if (window.gtag) {
+      window.gtag('event', 'pdf_view', {
+        event_category: 'PDF',
+        event_label: rowId
+      });
     }
-  };
+
+    window.open(pdfUrl, "_blank");  // open PDF same as before
+  }
+};
+
 
   const handleSort = (column) => {
     if (sortColumn === column) setSortDirection(prev => prev === "asc" ? "desc" : "asc");
