@@ -28,7 +28,7 @@ export default function PaperForm() {
 
   // Mapping Object
   const branchesMap = {
-   "All_Branches ":" 1 & 2 Sem",
+    "All_Branches ":" 1 & 2 Sem",
     "CSE": "Computer Science Engineering",
     "CE": "Civil Engineering",
     "ME": "Mechanical Engineering",
@@ -76,9 +76,12 @@ export default function PaperForm() {
   const handleChange = (e) => {
     const { name, value, files, checked } = e.target;
 
-    setIsVerified(false);
-    setDisableSubmit(true);
-    setExistingBranches([]); 
+    // Sirf checkbox ke case mein hum pura reset nahi karenge
+    if (name !== "branchCheckbox") {
+      setIsVerified(false);
+      setDisableSubmit(true);
+      setExistingBranches([]); 
+    }
 
     if (name === "pdfFile") {
       const file = files[0];
@@ -99,12 +102,22 @@ export default function PaperForm() {
 
     if (name === "branchCheckbox") {
       let updatedBranches = [...form.branches];
+      let updatedExisting = [...existingBranches];
+
       if (checked) {
         updatedBranches.push(value);
       } else {
         updatedBranches = updatedBranches.filter(b => b !== value);
+        // FIX: Agar user duplicate branch ko uncheck kare toh highlight hata do
+        updatedExisting = updatedExisting.filter(b => b !== value);
       }
+
       setForm({ ...form, branches: updatedBranches });
+      setExistingBranches(updatedExisting);
+      
+      // Verification reset karein agar naya selection hua hai
+      setIsVerified(false);
+      setDisableSubmit(true);
       return;
     }
 
@@ -153,7 +166,7 @@ export default function PaperForm() {
         showToast(`Already exists in: ${data.existingBranches.join(", ")}`, "error");
         setIsVerified(false);
         setDisableSubmit(true);
-        setIsOpen(true); // Taaki user dekh sake konsi branch red hai
+        setIsOpen(true); 
       } else {
         showToast("No duplicates found. Ready!", "success");
         setIsVerified(true);
@@ -281,7 +294,6 @@ export default function PaperForm() {
               <input type="text" name="subjectName" value={form.subjectName} onChange={handleChange} placeholder="Enter Subject Name" className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400" />
             </div>
 
-            {/* CUSTOM DROPDOWN WITH CHECKBOXES */}
             <div className="relative" ref={dropdownRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">Branches</label>
               <div 
