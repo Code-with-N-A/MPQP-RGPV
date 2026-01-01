@@ -11,7 +11,7 @@ import { auth } from "./firebase";
 const ApiContext = createContext();
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbwMy3F5EhYwRQ5uamxPcePXpAAwFv51tSBHlByGwt47ILXyKyY3Cr2nEoOPfhETOVSu/exec";
+  "https://script.google.com/macros/s/AKfycbxJy4KSAC1Getk3XpANoGH0sec3WPXq0vdkgeUTB5z_i-Dti4fjXU094B4umpfSZ976/exec";
 
 const ADMIN_EMAIL = "codewithna73@gmail.com";
 
@@ -29,7 +29,7 @@ export const ApiProvider = ({ children }) => {
     branches: [],
   });
 
-  // 🔐 AUTH LISTENER (unchanged)
+  // 🔐 AUTH LISTENER
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user && user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
@@ -43,10 +43,10 @@ export const ApiProvider = ({ children }) => {
     return () => unsub();
   }, []);
 
-  // 📥 DATA FETCH (ONLY FIX: authReady check)
+  // 📥 DATA FETCH (multi-branch compatible)
   const fetchData = useCallback(
     async (params = "") => {
-      if (!authReady) return; // ✅ यही main fix है
+      if (!authReady) return;
 
       setLoading(true);
       setError(null);
@@ -55,11 +55,21 @@ export const ApiProvider = ({ children }) => {
         let queryStr = "";
 
         if (typeof params === "object") {
-          const { year, semester, branch, isApprovalScreen } = params;
+          const { year, semester, branches, isApprovalScreen } = params;
 
           if (year) queryStr += `&year=${encodeURIComponent(year)}`;
           if (semester) queryStr += `&semester=${encodeURIComponent(semester)}`;
-          if (branch) queryStr += `&branch=${encodeURIComponent(branch)}`;
+
+          // Multi-branch support
+          if (branches) {
+            if (Array.isArray(branches)) {
+              branches.forEach(
+                (b) => (queryStr += `&branch=${encodeURIComponent(b)}`)
+              );
+            } else {
+              queryStr += `&branch=${encodeURIComponent(branches)}`;
+            }
+          }
 
           if (isAdmin || isApprovalScreen) {
             queryStr += "&admin=true";
@@ -100,7 +110,7 @@ export const ApiProvider = ({ children }) => {
         setLoading(false);
       }
     },
-    [isAdmin, authReady] // ✅ authReady added
+    [isAdmin, authReady]
   );
 
   // 🎯 FILTERS (unchanged)
@@ -120,6 +130,80 @@ export const ApiProvider = ({ children }) => {
     fetchFilters();
   }, [fetchFilters]);
 
+  // 📝 SAVE FUNCTION (multi-branch)
+  const savePaper = useCallback(
+    async ({
+      id,
+      year,
+      semester,
+      paperCode,
+      subjectName,
+      type,
+      pdfBase64,
+      filename,
+      email,
+      branches,
+    }) => {
+      if (!branches || branches.length === 0) branches = [branches];
+
+      const payload = {
+        action: "save",
+        id,
+        year,
+        semester,
+        paperCode,
+        subjectName,
+        type,
+        pdfBase64,
+        filename,
+        email,
+        branches,
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        const result = await res.json();
+        return result;
+      } catch (err) {
+        console.error("Save Error:", err);
+        return { status: "error", message: err.toString() };
+      }
+    },
+    []
+  );
+
+  // 📝 CHECK EXISTING BRANCHES
+  const checkPaper = useCallback(
+    async ({ year, semester, paperCode, type, branches }) => {
+      if (!branches || branches.length === 0) branches = [branches];
+
+      const payload = {
+        action: "check",
+        year,
+        semester,
+        paperCode,
+        type,
+        branches,
+      };
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        const result = await res.json();
+        return result; // result.existingBranches (if backend updated)
+      } catch (err) {
+        console.error("Check Error:", err);
+        return { status: "error", message: err.toString() };
+      }
+    },
+    []
+  );
+
   return (
     <ApiContext.Provider
       value={{
@@ -128,7 +212,10 @@ export const ApiProvider = ({ children }) => {
         loading,
         error,
         fetchData,
+        fetchFilters,
         filterOptions,
+        savePaper,
+        checkPaper,
         isAdmin,
         authReady,
         API_URL,
