@@ -283,7 +283,7 @@ export default function PaperForm() {
 
             {/* CUSTOM DROPDOWN WITH CHECKBOXES */}
             <div className="relative" ref={dropdownRef}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Branches (Select Multiple)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Branches</label>
               <div 
                 onClick={() => setIsOpen(!isOpen)}
                 className={`w-full p-3 border rounded-lg bg-white flex justify-between items-center cursor-pointer shadow-sm ${existingBranches.length > 0 ? 'border-red-500 ring-1 ring-red-200' : 'border-gray-300'}`}
