@@ -34,7 +34,10 @@ export default function ControlD() {
     if (forceType === "pending") {
       params += "&status=disabled";
     } else if (isFilterReady) {
-      params += `&year=${yearFilter}&semester=${semFilter}&branch=${branchFilter}`;
+      // FIX: Check if branch is "All_Branches" and handle the potential trailing space
+      const branchVal = branchFilter.trim() === "All_Branches" ? "All_Branches " : branchFilter;
+      params += `&year=${yearFilter}&semester=${semFilter}&branch=${encodeURIComponent(branchVal)}`;
+      
       sessionStorage.setItem("admin_year", yearFilter);
       sessionStorage.setItem("admin_sem", semFilter);
       sessionStorage.setItem("admin_branch", branchFilter);
