@@ -11,7 +11,7 @@ import { auth } from "./firebase";
 const ApiContext = createContext();
 
 const API_URL =
-  "https://script.google.com/macros/s/AKfycbxJy4KSAC1Getk3XpANoGH0sec3WPXq0vdkgeUTB5z_i-Dti4fjXU094B4umpfSZ976/exec";
+  "https://script.google.com/macros/s/AKfycbzrJs6yJMpaiO0eVhhjxCcOztv9T66YV0xExkzMjFU-vaNlJMwIFnbB3Dya0Sy2FQ/exec";
 
 const ADMIN_EMAIL = "codewithna73@gmail.com";
 
