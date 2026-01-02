@@ -69,32 +69,59 @@ export default function SearchBar() {
     };
   }, []);
 
-  // --- 3. Search Logic ---
+  // --- 3. Table-Specific Search Logic ---
   useEffect(() => {
-    if (!searchText || searchText.length < 2) return setSuggestions([]);
+    if (!searchText || searchText.trim().length < 1) return setSuggestions([]);
 
+    const query = searchText.toLowerCase().trim();
+
+    // Walker: Sirf table ke andar ka text dhoondega
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
       acceptNode: (node) => {
         const parent = node.parentElement;
         if (!node.nodeValue.trim() || !parent || !parent.offsetParent) return NodeFilter.FILTER_REJECT;
-        if (["SCRIPT", "STYLE", "NAV", "HEADER", "FOOTER"].includes(parent.tagName)) return NodeFilter.FILTER_REJECT;
+        
+        // --- KEY LOGIC: Sirf TABLE ke andar ka data check karega ---
+        const isInTable = parent.closest("table"); 
+        if (!isInTable) return NodeFilter.FILTER_REJECT;
+
         if (parent.closest(".search-container")) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       },
     });
 
     const foundMap = new Map();
+
+    // Fuzzy logic function
+    const fuzzyMatch = (str, pattern) => {
+      const p = pattern.split("").reduce((a, b) => a + ".*" + b);
+      return new RegExp(p).test(str);
+    };
+
     while (walker.nextNode()) {
-      const text = walker.currentNode.nodeValue.trim();
-      if (text.toLowerCase().includes(searchText.toLowerCase()) && !foundMap.has(text)) {
-        foundMap.set(text, walker.currentNode.parentElement);
+      const originalText = walker.currentNode.nodeValue.trim();
+      const text = originalText.toLowerCase();
+      
+      if ((text.includes(query) || fuzzyMatch(text, query)) && !foundMap.has(text)) {
+        // Sirf wahi results jo meaningful ho
+        if (originalText.length < 100) {
+          foundMap.set(originalText, walker.currentNode.parentElement);
+        }
       }
     }
-    setSuggestions(Array.from(foundMap.keys()).slice(0, 6).map(text => ({ text, el: foundMap.get(text) })));
+    
+    setSuggestions(
+      Array.from(foundMap.keys())
+        .slice(0, 8) 
+        .map(text => ({ text, el: foundMap.get(text) }))
+    );
   }, [searchText]);
 
   const handleSuggestionClick = (el) => {
+    // Scroll to the table row or cell
     el.scrollIntoView({ behavior: "smooth", block: "center" });
+    
+    // Highlight the element
     el.classList.add("prime-highlight");
     setTimeout(() => el.classList.remove("prime-highlight"), 2000);
     
@@ -125,7 +152,7 @@ export default function SearchBar() {
             type="text"
             value={searchText}
             onChange={(e) => { setSearchText(e.target.value); setIsOpen(true); }}
-            placeholder={placeholder || "Search papers..."}
+            placeholder={placeholder || "Search table data..."}
             className="bg-transparent border-none outline-none text-sm font-medium w-full placeholder-gray-400 cursor-text"
           />
         </div>
@@ -189,14 +216,14 @@ export default function SearchBar() {
               ) : (
                 <div className="p-8 text-center">
                   <Clock size={24} className="mx-auto text-orange-500 mb-2 opacity-50" />
-                  <p className="text-sm text-gray-500 font-medium">Find papers by branch or year</p>
+                  <p className="text-sm text-gray-500 font-medium">Search for subject, code or branch in table</p>
                 </div>
               )}
             </div>
             
             <div className="flex px-4 py-2 bg-gray-50 dark:bg-zinc-800/50 justify-between items-center text-[9px] font-bold text-gray-400 border-t border-gray-100 dark:border-zinc-800">
                <span>ESC to close</span>
-               <span className="text-orange-500">PRIME SEARCH</span>
+               <span className="text-orange-500 uppercase font-black">Table Search</span>
             </div>
           </motion.div>
         )}
@@ -207,8 +234,8 @@ export default function SearchBar() {
           animation: prime-pulse 2s ease-out; 
         }
         @keyframes prime-pulse {
-          0% { background-color: rgba(251, 146, 60, 0.3); outline: 2px solid #fb923c; }
-          100% { background-color: transparent; outline: 2px solid transparent; }
+          0% { background-color: rgba(251, 146, 60, 0.4); outline: 2px solid #fb923c; transform: scale(1.02); }
+          100% { background-color: transparent; outline: 2px solid transparent; transform: scale(1); }
         }
         .custom-scrollbar::-webkit-scrollbar { 
           width: 4px; 
