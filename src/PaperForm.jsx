@@ -28,7 +28,7 @@ export default function PaperForm() {
 
   // Mapping Object
   const branchesMap = {
-    "All_Branches ":" 1 & 2 Sem",
+    "All_Branches ": " 1 & 2 Sem",
     "CSE": "Computer Science Engineering",
     "CE": "Civil Engineering",
     "ME": "Mechanical Engineering",
@@ -80,7 +80,7 @@ export default function PaperForm() {
     if (name !== "branchCheckbox") {
       setIsVerified(false);
       setDisableSubmit(true);
-      setExistingBranches([]); 
+      setExistingBranches([]);
     }
 
     if (name === "pdfFile") {
@@ -108,16 +108,20 @@ export default function PaperForm() {
         updatedBranches.push(value);
       } else {
         updatedBranches = updatedBranches.filter(b => b !== value);
-        // FIX: Agar user duplicate branch ko uncheck kare toh highlight hata do
         updatedExisting = updatedExisting.filter(b => b !== value);
       }
 
       setForm({ ...form, branches: updatedBranches });
       setExistingBranches(updatedExisting);
-      
-      // Verification reset karein agar naya selection hua hai
+
       setIsVerified(false);
       setDisableSubmit(true);
+      return;
+    }
+
+    // Subject Name ko automatic uppercase aur trim karne ke liye
+    if (name === "subjectName") {
+      setForm({ ...form, [name]: value.toUpperCase() });
       return;
     }
 
@@ -152,7 +156,7 @@ export default function PaperForm() {
         semester: form.semester,
         paperCode: getFullPaperCode(),
         type: form.type,
-        branches: form.branches.join(","), 
+        branches: form.branches.join(","),
       });
 
       const res = await fetch(`${API_URL}?${params.toString()}`);
@@ -162,11 +166,11 @@ export default function PaperForm() {
       setIsRequesting(false);
 
       if (data.status === "success" && data.exists) {
-        setExistingBranches(data.existingBranches || []); 
+        setExistingBranches(data.existingBranches || []);
         showToast(`Already exists in: ${data.existingBranches.join(", ")}`, "error");
         setIsVerified(false);
         setDisableSubmit(true);
-        setIsOpen(true); 
+        setIsOpen(true);
       } else {
         showToast("No duplicates found. Ready!", "success");
         setIsVerified(true);
@@ -190,6 +194,7 @@ export default function PaperForm() {
 
     try {
       const base64PDF = await fileToBase64(form.pdfFile);
+      // Final submit ke waqt bhi trim kar diya hai taaki extra spaces na jayen
       const safeSubject = form.subjectName.trim().replace(/\s+/g, "_");
       const customFileName = `${form.year}_${getFullPaperCode()}_${safeSubject}_${form.type}.pdf`;
 
@@ -199,10 +204,10 @@ export default function PaperForm() {
         year: form.year,
         semester: form.semester,
         paperCode: getFullPaperCode(),
-        subjectName: form.subjectName,
+        subjectName: form.subjectName.trim(), // Yahan bhi trim apply kiya hai
         type: form.type,
         status: form.status,
-        branches: form.branches, 
+        branches: form.branches,
         email: auth.currentUser?.email || "",
         filename: customFileName,
         pdfBase64: base64PDF,
@@ -265,14 +270,14 @@ export default function PaperForm() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                <select name="year" value={form.year} onChange={handleChange} disabled={loading} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400">
+                <select name="year" value={form.year} onChange={handleChange} disabled={loading || verifyLoading} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400">
                   <option value="">Select Year</option>
                   <option>2023</option><option>2024</option><option>2025</option><option>2026</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Semester</label>
-                <select name="semester" value={form.semester} onChange={handleChange} disabled={loading} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400">
+                <select name="semester" value={form.semester} onChange={handleChange} disabled={loading || verifyLoading} className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400">
                   <option value="">Select Semester</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8].map(num => <option key={num}>{num}</option>)}
                 </select>
@@ -282,28 +287,28 @@ export default function PaperForm() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Paper Code</label>
               <div className="flex">
-                <select name="paperPrefix" value={form.paperPrefix} onChange={handleChange} className="p-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50 font-bold">
+                <select name="paperPrefix" value={form.paperPrefix} onChange={handleChange} disabled={loading || verifyLoading} className="p-3 border border-r-0 border-gray-300 rounded-l-lg bg-gray-50 font-bold">
                   <option value="">-</option><option value="S">S</option><option value="W">W</option><option value="F">F</option>
                 </select>
-                <input type="text" name="paperCode" value={form.paperCode} onChange={handleChange} maxLength="4" placeholder="7482" className={`flex-1 p-3 border rounded-r-lg outline-none focus:ring-2 focus:ring-gray-500 ${!isPaperCodeValid && form.paperCode ? 'border-red-500' : 'border-gray-300'}`} />
+                <input type="text" name="paperCode" value={form.paperCode} onChange={handleChange} disabled={loading || verifyLoading} maxLength="4" placeholder="7482" className={`flex-1 p-3 border rounded-r-lg outline-none focus:ring-2 focus:ring-gray-500 ${!isPaperCodeValid && form.paperCode ? 'border-red-500' : 'border-gray-300'}`} />
               </div>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Subject Name</label>
-              <input type="text" name="subjectName" value={form.subjectName} onChange={handleChange} placeholder="Enter Subject Name" className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400" />
+              <input type="text" name="subjectName" value={form.subjectName} onChange={handleChange} disabled={loading || verifyLoading} placeholder="Enter Subject Name" className="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-gray-400" />
             </div>
 
             <div className="relative" ref={dropdownRef}>
               <label className="block text-sm font-medium text-gray-700 mb-1">Branches</label>
-              <div 
-                onClick={() => setIsOpen(!isOpen)}
-                className={`w-full p-3 border rounded-lg bg-white flex justify-between items-center cursor-pointer shadow-sm ${existingBranches.length > 0 ? 'border-red-500 ring-1 ring-red-200' : 'border-gray-300'}`}
+              <div
+                onClick={() => !(loading || verifyLoading) && setIsOpen(!isOpen)}
+                className={`w-full p-3 border rounded-lg bg-white flex justify-between items-center cursor-pointer shadow-sm ${existingBranches.length > 0 ? 'border-red-500 ring-1 ring-red-200' : 'border-gray-300'} ${(loading || verifyLoading) ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               >
                 <span className="text-gray-600 truncate">
                   {form.branches.length > 0 ? form.branches.join(", ") : "Select Branches"}
                 </span>
-                <svg className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 9l-7 7-7-7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </div>
 
               {isOpen && (
@@ -318,6 +323,7 @@ export default function PaperForm() {
                           value={short}
                           checked={form.branches.includes(short)}
                           onChange={handleChange}
+                          disabled={loading || verifyLoading}
                           className="mt-1 w-4 h-4 accent-gray-700"
                         />
                         <div className="flex flex-col leading-tight">
@@ -337,7 +343,7 @@ export default function PaperForm() {
               <div className="flex gap-6 justify-center bg-gray-50 p-2 rounded-lg border border-dashed border-gray-300">
                 {["Regular", "Ex"].map(type => (
                   <label key={type} className="flex items-center cursor-pointer group">
-                    <input type="radio" name="type" value={type} checked={form.type === type} onChange={handleChange} className="mr-2 w-4 h-4 accent-gray-700" />
+                    <input type="radio" name="type" value={type} checked={form.type === type} onChange={handleChange} disabled={loading || verifyLoading} className="mr-2 w-4 h-4 accent-gray-700" />
                     <span className="text-gray-700 font-medium">{type}</span>
                   </label>
                 ))}
@@ -346,7 +352,7 @@ export default function PaperForm() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Upload PDF</label>
-              <input type="file" name="pdfFile" accept="application/pdf" onChange={handleChange} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-white file:font-bold" />
+              <input type="file" name="pdfFile" accept="application/pdf" onChange={handleChange} disabled={loading || verifyLoading} className="w-full p-2 border border-gray-300 rounded-lg bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-700 file:text-white file:font-bold" />
             </div>
 
             <div className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${isVerified ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"}`}>
