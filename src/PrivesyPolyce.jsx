@@ -18,11 +18,8 @@ export default function PrivacyPolicyPortal() {
 
   return (
     <div className="mpqp-policy-main bg-[#f4f7f9] min-h-screen px-4 sm:px-6 lg:px-8">
-      {/* Responsive Margin Top: 
-          - mt-20 on mobile (to give enough gap for fixed headers)
-          - mt-10 on PC (for a subtle formal gap)
-      */}
-      <div className="max-w-5xl mx-auto bg-white shadow-sm border border-gray-200 overflow-hidden mt-20 md:mt-10 mb-20">
+      {/* Container with specific class to isolate styles */}
+      <div className="mpqp-policy-card-container max-w-5xl mx-auto bg-white shadow-sm border border-gray-200 overflow-hidden mt-20 md:mt-10 mb-20">
         
         {/* Official Header Section - Government Blue Theme */}
         <div className="bg-[#003366] p-6 sm:p-10 border-b-4 border-[#c5a059]">
@@ -143,16 +140,16 @@ export default function PrivacyPolicyPortal() {
       </div>
 
       <style>{`
-        /* Scoped styles to protect Navbar and use Default Scrollbar */
-        .mpqp-policy-main div, 
-        .mpqp-policy-main section, 
-        .mpqp-policy-main h1, 
-        .mpqp-policy-main h2, 
-        .mpqp-policy-main h4, 
-        .mpqp-policy-main p, 
-        .mpqp-policy-main span, 
-        .mpqp-policy-main ul, 
-        .mpqp-policy-main li {
+        /* Isolate styles ONLY to the card container to protect Navbar Logo */
+        .mpqp-policy-card-container, 
+        .mpqp-policy-card-container div, 
+        .mpqp-policy-card-container section, 
+        .mpqp-policy-card-container h1, 
+        .mpqp-policy-card-container h2, 
+        .mpqp-policy-card-container h4, 
+        .mpqp-policy-card-container p, 
+        .mpqp-policy-card-container span, 
+        .mpqp-policy-card-container li {
           border-radius: 0 !important;
           box-sizing: border-box;
         }
@@ -170,14 +167,18 @@ export default function PrivacyPolicyPortal() {
           .mt-20 {
             margin-top: 5rem !important; 
           }
-          .max-w-5xl {
+          /* Ensure the card doesn't push against screen edges on tiny phones */
+          .mpqp-policy-card-container {
             border: none;
             box-shadow: none;
+            margin-left: 0;
+            margin-right: 0;
           }
           .p-6, .p-12 {
-            padding: 1rem;
+            padding: 1.25rem;
           }
-          h1 {
+          /* This targets only the Policy Title, not your Navbar Text/Logo */
+          .mpqp-policy-card-container h1 {
             font-size: 2.2rem !important;
             line-height: 1.1;
           }
