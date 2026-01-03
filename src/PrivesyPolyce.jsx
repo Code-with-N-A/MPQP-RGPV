@@ -143,8 +143,16 @@ export default function PrivacyPolicyPortal() {
       </div>
 
       <style>{`
-        /* Global Design System - Strictly Sharp Corners */
-        .mpqp-policy-main * {
+        /* Scoped styles to protect Navbar and use Default Scrollbar */
+        .mpqp-policy-main div, 
+        .mpqp-policy-main section, 
+        .mpqp-policy-main h1, 
+        .mpqp-policy-main h2, 
+        .mpqp-policy-main h4, 
+        .mpqp-policy-main p, 
+        .mpqp-policy-main span, 
+        .mpqp-policy-main ul, 
+        .mpqp-policy-main li {
           border-radius: 0 !important;
           box-sizing: border-box;
         }
@@ -154,13 +162,11 @@ export default function PrivacyPolicyPortal() {
           scroll-behavior: smooth;
         }
 
-        /* Mobile Optimization for Handheld Devices */
         @media (max-width: 640px) {
           .mpqp-policy-main {
             padding-bottom: 2rem;
             background: #ffffff;
           }
-          /* Larger margin on mobile for header clearance */
           .mt-20 {
             margin-top: 5rem !important; 
           }
@@ -172,15 +178,10 @@ export default function PrivacyPolicyPortal() {
             padding: 1rem;
           }
           h1 {
-            font-size: 2.2rem;
+            font-size: 2.2rem !important;
             line-height: 1.1;
           }
         }
-
-        /* Custom Scrollbar for Official Look */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f8fafc; }
-        ::-webkit-scrollbar-thumb { background: #003366; }
       `}</style>
     </div>
   );
