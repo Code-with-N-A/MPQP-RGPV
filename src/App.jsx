@@ -12,6 +12,7 @@ import ControlD from "./DataControl";
 import { ApiProvider } from "./ContextAPI";
 import ApprovalS from "./ApruvelS";
 import UserRoute from "./UserRout";
+import PrivacyPolicy from "./PrivesyPolyce";
 
 function App() {
   return (
@@ -32,6 +33,9 @@ function App() {
             <UserRoute>
             <ApprovalS />
             </UserRoute>
+            } />
+          <Route path="/PrivacyPolicy" element={
+            <PrivacyPolicy/>
             } />
 
 

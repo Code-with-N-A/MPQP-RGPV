@@ -28,7 +28,7 @@ const ProcessTracker = ({ paper }) => {
                     </div>
                     <h4 className="text-lg font-extrabold text-slate-800 uppercase tracking-tight leading-none mb-2">{paper.subjectName}</h4>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                        <FiFileText size={12}/> Ref ID: {paper.timestamp ? paper.timestamp.toString().slice(-6) : "PENDING"} • {formatDate(paper.timestamp)}
+                        <FiFileText size={12} /> Ref ID: {paper.timestamp ? paper.timestamp.toString().slice(-6) : "PENDING"} • {formatDate(paper.timestamp)}
                     </p>
                 </div>
                 <div className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm ${isApproved ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}>
@@ -78,6 +78,16 @@ export default function ApprovalS() {
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [showToast, setShowToast] = useState(false);
 
+    // --- Google Search SEO ---
+    useEffect(() => {
+        document.title = "Track Paper Status | MPQP Verification Portal";
+        let metaDescription = document.querySelector('meta[name="description"]');
+        if (metaDescription) {
+            metaDescription.setAttribute("content", "Track your RGPV Polytechnic paper submissions. View real-time verification status on MPQP.");
+        }
+    }, []);
+    // ----------------------------
+
     const user = auth.currentUser;
     const userEmail = user?.email?.toLowerCase().trim() || "";
 
@@ -95,7 +105,7 @@ export default function ApprovalS() {
         if (allData) {
             let userRecords = allData.filter(row => row.email?.toLowerCase().trim() === userEmail).reverse();
             setMyPapers(userRecords);
-            
+
             const visitCount = parseInt(sessionStorage.getItem("verify_visit_count") || "0");
             if (userRecords.some(p => p.status?.toLowerCase() === "approved") && visitCount < 2) {
                 setShowToast(true);
@@ -160,7 +170,7 @@ export default function ApprovalS() {
                     <div className="lg:col-span-4 space-y-6">
                         {/* Status Card */}
                         <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm overflow-hidden relative">
-                            <div className="absolute top-0 right-0 p-4 opacity-10"><FiActivity size={60}/></div>
+                            <div className="absolute top-0 right-0 p-4 opacity-10"><FiActivity size={60} /></div>
                             <h3 className="text-[11px] font-black uppercase text-indigo-600 mb-6 flex items-center gap-2 tracking-widest">
                                 <FiInfo /> System Intelligence
                             </h3>
@@ -205,55 +215,53 @@ export default function ApprovalS() {
                                         <ProcessTracker key={idx} paper={paper} />
                                     ))}
                                 </motion.div>
-                           ) : (
-    <motion.div
-        key="empty"
-        initial={{ opacity: 0, scale: 0.98 }} 
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-white border-2 border-dashed border-slate-200 p-12 md:p-20 text-center rounded-3xl"
-    >
-        {/* Neutral Icon jo sabke liye sahi hai */}
-        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-300">
-            <FiShield size={40} />
-        </div>
-        
-        <h3 className="text-2xl font-black text-slate-800 mb-4 uppercase tracking-tighter italic">
-             वेरिफिकेशन
-        </h3>
-        
-        <p className="text-slate-500 text-[11px] font-bold max-w-sm mx-auto leading-relaxed mb-10 uppercase tracking-widest">
-            "शिक्षा की शक्ति साझा करने में है" <br/>
-            आपकी वेरिफिकेशन लिस्ट अभी पूरी तरह से क्लियर है। 
-            जब भी आप नए पेपर्स अपलोड करेंगे, उनका लाइव स्टेटस यहाँ दिखाई देगा।
-        </p>
+                            ) : (
+                                <motion.div
+                                    key="empty"
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="bg-white border-2 border-dashed border-slate-200 p-12 md:p-20 text-center rounded-3xl"
+                                >
+                                    {/* Neutral Icon jo sabke liye sahi hai */}
+                                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8 text-slate-300">
+                                        <FiShield size={40} />
+                                    </div>
 
-        <div className="flex flex-wrap justify-center gap-6 items-center border-t border-slate-50 pt-10">
-            <div className="text-center">
-                <p className="text-lg font-black text-slate-300">01</p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">स्कैन और अपलोड</p>
-            </div>
-            <div className="w-8 h-[2px] bg-slate-100"></div>
-            <div className="text-center">
-                <p className="text-lg font-black text-slate-300">02</p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">क्वालिटी चेक</p>
-            </div>
-            <div className="w-8 h-[2px] bg-slate-100"></div>
-            <div className="text-center">
-                <p className="text-lg font-black text-slate-300">03</p>
-                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ग्लोबल लाइव</p>
-            </div>
-        </div>
-    </motion.div>
-)}
+                                    <h3 className="text-2xl font-black text-slate-800 mb-4 uppercase tracking-tighter italic">
+                                        वेरिफिकेशन
+                                    </h3>
+
+                                    <p className="text-slate-500 text-[11px] font-bold max-w-sm mx-auto leading-relaxed mb-10 uppercase tracking-widest">
+                                        "शिक्षा की शक्ति साझा करने में है" <br />
+                                        आपकी वेरिफिकेशन लिस्ट अभी पूरी तरह से क्लियर है।
+                                        जब भी आप नए पेपर्स अपलोड करेंगे, उनका लाइव स्टेटस यहाँ दिखाई देगा।
+                                    </p>
+
+                                    <div className="flex flex-wrap justify-center gap-6 items-center border-t border-slate-50 pt-10">
+                                        <div className="text-center">
+                                            <p className="text-lg font-black text-slate-300">01</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">स्कैन और अपलोड</p>
+                                        </div>
+                                        <div className="w-8 h-[2px] bg-slate-100"></div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-black text-slate-300">02</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">क्वालिटी चेक</p>
+                                        </div>
+                                        <div className="w-8 h-[2px] bg-slate-100"></div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-black text-slate-300">03</p>
+                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ग्लोबल लाइव</p>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
                         </AnimatePresence>
                     </div>
                 </div>
             </div>
 
             {/* --- SYSTEM FOOTER --- */}
-            <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 py-4 text-center z-40">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em]">Official Academic Repository • MPQP Global v2.5</p>
-            </div>
+
         </div>
     );
 }

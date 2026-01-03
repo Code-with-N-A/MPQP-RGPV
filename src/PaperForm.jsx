@@ -26,6 +26,19 @@ export default function PaperForm() {
   const [isOpen, setIsOpen] = useState(false); // Dropdown toggle
   const dropdownRef = useRef(null);
 
+  //----- Google Search SEO ----
+  useEffect(() => {
+    // 1. Browser ke tab mein naam dikhega
+    document.title = "Upload RGPV Polytechnic Papers | MPQP Admin";
+
+    // 2. Google Search ke niche jo 2 line ka description dikhta hai, ye uske liye hai
+    let metaDescription = document.querySelector('meta[name="description"]');
+    if (metaDescription) {
+      metaDescription.setAttribute("content", "MPQP Portal: Upload and manage RGPV Polytechnic Diploma previous year question papers for all branches.");
+    }
+  }, []);
+  // Iske niche aapka branchesMap aur dusra useEffect rahega...
+  
   // Mapping Object
   const branchesMap = {
     "All_Branches ": " 1 & 2 Sem",
